@@ -1,6 +1,9 @@
 from treelib import Node, Tree
 import sys
 import argparse
+from multiprocessing import Pool
+import multiprocessing
+import functools
 
 def create_tree(tree_filename):
     tree = Tree()
@@ -15,7 +18,7 @@ def create_tree(tree_filename):
     num_close = sum([s[1] for s in stack])
 
     if ((num_open != num_close)):
-        print 'ERROR: PhyloTree in incorrect format!'
+        print ('ERROR: PhyloTree in incorrect format!')
         sys.exit()
 
     curr_node = '0'
@@ -56,7 +59,7 @@ def get_symmetric_difference (A, X):
     d2 = len(set(X) - set(A))
     return (d1+d2)
 
-def get_directed_change(tree1, bid, tree2_dichotomies):
+def get_directed_change(bid, tree1, tree2_dichotomies):
     (A, B) = get_branch_dichotomy(tree1, bid)
     return (min([get_symmetric_difference(A,X) for (X,Y) in \
                  tree2_dichotomies]))
@@ -78,10 +81,11 @@ if __name__ == "__main__":
     T2_filename = args['T2']
     T1 = create_tree(T1_filename)
     T2 = create_tree(T2_filename)
-    print 'T1: '
+
+    print ('T1: ')
     T1.show()
 
-    print 'T2: '
+    print ('T2: ')
     T2.show()
 
     T1_internal_node_ids = get_internal_node_ids(T1)
@@ -89,11 +93,18 @@ if __name__ == "__main__":
     T2_dichotomies = [get_branch_dichotomy(T2, bid) for bid in \
                          T2_internal_node_ids] 
 
-    for bid in T1_internal_node_ids:
-        C = get_directed_change(T1, bid, T2_dichotomies)
-        T1.update_node(bid, tag=(bid+":"+str(C)))
+    pool = Pool(processes=multiprocessing.cpu_count())
+    
+    worker = functools.partial(get_directed_change, tree1=T1, \
+            tree2_dichotomies=T2_dichotomies) 
 
-    print 'T1 (with directed changes): '
+    # directed change for each branch in T1
+    C = pool.map(worker, T1_internal_node_ids)
+
+    for (k, bid) in enumerate(T1_internal_node_ids):
+        T1.update_node(bid, tag=(bid+":"+str(C[k])))
+
+    print ('T1 (with directed changes): ')
     T1.show()
     
 
