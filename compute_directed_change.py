@@ -117,6 +117,6 @@ if __name__ == "__main__":
     print ('T1 (with directed changes): ')
     T1.show()
 
-    print ('T1: size: '+str(len(T1_internal_node_ids)))
-    print ('T2: size: '+str(len(T2_internal_node_ids)))
+    print ('T1 size: '+str(len(T1_internal_node_ids)))
+    print ('T2 size: '+str(len(T2_internal_node_ids)))
 
