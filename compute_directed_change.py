@@ -74,7 +74,7 @@ if __name__ == "__main__":
     parser.add_argument("-T1", type=str,
                         help="tree 1 (in Newick format)")
     parser.add_argument("-T2", type=str,
-                        help="tree w (in Newick format)")
+                        help="tree 2 (in Newick format)")
 
     if len(sys.argv) <= 4:
         parser.print_help()
