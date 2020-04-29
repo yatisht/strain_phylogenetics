@@ -48,21 +48,25 @@ def get_internal_node_ids (tree):
     leaf_ids = set([n.identifier for n in tree.leaves()])
     return list(all_node_ids - leaf_ids)
 
+def get_leaf_node_ids (tree):
+    leaf_ids = [n.identifier for n in tree.leaves()]
+    return leaf_ids
+
 def get_branch_dichotomy (tree, bid):
     all_leaf_ids = set([n.identifier for n in tree.leaves()])
     A = set([n.identifier for n in tree.leaves(bid)])
     B = (all_leaf_ids - A)
     return (list(A), list(B))
 
-def get_symmetric_difference (A, X):
-    d1 = len(set(A) - set(X))
-    d2 = len(set(X) - set(A))
+def get_symmetric_difference (A, X, common_leaf_ids):
+    d1 = len((set(A)-set(X)).intersection(common_leaf_ids)) 
+    d2 = len((set(X)-set(A)).intersection(common_leaf_ids)) 
     return (d1+d2)
 
-def get_directed_change(bid, tree1, tree2_dichotomies):
+def get_directed_change(bid, tree1, tree2_dichotomies, common_leaf_ids):
     (A, B) = get_branch_dichotomy(tree1, bid)
-    return (min([get_symmetric_difference(A,X) for (X,Y) in \
-                 tree2_dichotomies]))
+    return (min([(get_symmetric_difference(A,X,common_leaf_ids), k) \
+                 for k,(X,Y) in enumerate(tree2_dichotomies)]))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Compute directed change '
@@ -90,24 +94,29 @@ if __name__ == "__main__":
 
     T1_internal_node_ids = get_internal_node_ids(T1)
     T2_internal_node_ids = get_internal_node_ids(T2)
+    
+    T1_leaf_node_ids = get_leaf_node_ids(T1)
+    T2_leaf_node_ids = get_leaf_node_ids(T2)
+    common_leaf_ids = set(T1_leaf_node_ids).intersection(set(T2_leaf_node_ids))
+    
     T2_dichotomies = [get_branch_dichotomy(T2, bid) for bid in \
                          T2_internal_node_ids] 
 
     pool = Pool(processes=multiprocessing.cpu_count())
     
     worker = functools.partial(get_directed_change, tree1=T1, \
-            tree2_dichotomies=T2_dichotomies) 
+        tree2_dichotomies=T2_dichotomies, common_leaf_ids = common_leaf_ids) 
 
     # directed change for each branch in T1
     C = pool.map(worker, T1_internal_node_ids)
 
     for (k, bid) in enumerate(T1_internal_node_ids):
-        T1.update_node(bid, tag=(bid+":"+str(C[k])))
+        T1.update_node(bid, tag=(bid+":change="+str(C[k][0])+\
+                                        ":best-match="+str(C[k][1])))
 
     print ('T1 (with directed changes): ')
     T1.show()
-    
 
-
-
+    print ('T1: size: '+str(len(T1_internal_node_ids)))
+    print ('T2: size: '+str(len(T2_internal_node_ids)))
 
