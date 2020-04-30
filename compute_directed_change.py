@@ -56,7 +56,7 @@ def get_branch_dichotomy (tree, bid):
     all_leaf_ids = set([n.identifier for n in tree.leaves()])
     A = set([n.identifier for n in tree.leaves(bid)])
     B = (all_leaf_ids - A)
-    return (list(A), list(B))
+    return (list(A), list(B), bid)
 
 def get_symmetric_difference (A, X, common_leaf_ids):
     d1 = len((set(A)-set(X)).intersection(common_leaf_ids)) 
@@ -64,9 +64,9 @@ def get_symmetric_difference (A, X, common_leaf_ids):
     return (d1+d2)
 
 def get_directed_change(bid, tree1, tree2_dichotomies, common_leaf_ids):
-    (A, B) = get_branch_dichotomy(tree1, bid)
-    return (min([(get_symmetric_difference(A,X,common_leaf_ids), k) \
-                 for k,(X,Y) in enumerate(tree2_dichotomies)]))
+    (A, B, bid) = get_branch_dichotomy(tree1, bid)
+    return (min([(get_symmetric_difference(A,X,common_leaf_ids), bid2) \
+                 for (X,Y,bid2) in tree2_dichotomies]))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Compute directed change '
