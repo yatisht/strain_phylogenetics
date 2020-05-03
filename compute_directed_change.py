@@ -4,6 +4,7 @@ import argparse
 from multiprocessing import Pool
 import multiprocessing
 import functools
+import matplotlib.pyplot as plt
 
 def create_tree(tree_filename):
     tree = Tree()
@@ -13,6 +14,20 @@ def create_tree(tree_filename):
     l = first_line.rstrip()
     s1 = l.split(',')
     s2 = [s.split(':')[0].replace('(', '').replace(')', '') for s in s1]
+    s3 = l.split('#')
+    s4 = [s.split(')')[1] for s in s3 if (len(s.split(')')) > 1)]
+    s5 = []
+    start = False
+    word = ''
+    for c in l:
+        if c == '#':
+            start = True
+        elif ((start) and (c != ':')):
+            word += c
+        elif ((start) and (c == ':')):
+            start = False
+            s5.append(word)
+            word = ''
     stack = [(w.count('('), w.count(')')) for w in s1]
     num_open = sum([s[0] for s in stack])
     num_close = sum([s[1] for s in stack])
@@ -22,6 +37,7 @@ def create_tree(tree_filename):
         sys.exit()
 
     curr_node = '0'
+    curr_idx = 0
     parent_stack = []
 
     for (k, species) in enumerate(s2):
@@ -36,6 +52,9 @@ def create_tree(tree_filename):
             parent_stack.append(curr_node)
         tree.create_node(species, species, parent=parent_stack[-1])
         for i in range(nc):
+            nid = parent_stack[-1]
+            tree.update_node(nid, tag=(nid+':'+s4[curr_idx]+':'+s5[curr_idx]))
+            curr_idx += 1
             parent_stack.pop()
 
     return tree
@@ -111,12 +130,37 @@ if __name__ == "__main__":
     C = pool.map(worker, T1_internal_node_ids)
 
     for (k, bid) in enumerate(T1_internal_node_ids):
-        T1.update_node(bid, tag=(bid+":change="+str(C[k][0])+\
-                                        ":best-match="+str(C[k][1])))
+        tag1 = T1.get_node(bid).tag
+        tag2 = T2.get_node(C[k][1]).tag 
+        T1.update_node(bid, tag=(tag1+" change="+str(C[k][0])+\
+                                        " best-match="+tag2))
 
     print ('T1 (with directed changes): ')
     T1.show()
 
     print ('T1 size: '+str(len(T1_internal_node_ids)))
     print ('T2 size: '+str(len(T2_internal_node_ids)))
+
+    clade_changes = {}
+
+    for lid in common_leaf_ids:
+        if T1.level(lid) != 0:
+            parent_tag = T1.parent(lid).tag
+            T1_clade = parent_tag.split()[0].split(':')[1]
+            T2_clade = parent_tag.split()[2].split('=')[1].split(':')[1]
+            if T1_clade != T2_clade:
+                if (T1_clade != 'unassigned') and (T2_clade != 'unassigned'):
+                    key = T1_clade + "<-" + T2_clade
+                elif (T1_clade == 'unassigned'):
+                    key =  "unassigned<-*" 
+                else:
+                    key =  "*<-unassigned" 
+                n = clade_changes.get(key, 0)
+                clade_changes[key] = n+1
+
+    for (k,v) in clade_changes.items():
+        print (k+": "+str(v))
+
+    print (len(C))
+
 
