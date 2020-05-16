@@ -184,7 +184,7 @@ def get_entropy_weighted_split_distance(bid, tree1, tree2, tree2_splits, \
         dist.append((diff, ent*diff, bid2))
         if (diff < min_dist):
             min_dist = diff
-    if min_dist > s: 
+    if min_dist >= s: 
         return [(s, ent*s, '-1')]
     m = [x for x in dist if (x[0] == min_dist)]
     ret = []
