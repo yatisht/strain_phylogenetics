@@ -2,14 +2,16 @@
 
 This repository provides tools primarily designed for analyzing Nextstrain (http://nextstrain.org/ncov/) and other phylogenies generated for the SARS-CoV2 genome but is also applicable for other phylogenetic applications. Detailed discussion of the tools can be found in the reference at the bottom of this page. Instructions below demonstrate the usage of these tools through examples.  
 
-### Install prereqs
+### Install python prerequisites using pip
 ```
-    $ pip install treelib
+    $ pip install treelib numpy==1.14.6 scipy==1.0.1  
 ```
 ### Download sample newick and variant (VCF) files 
 ```
-    $ for day in 19 20 21 22 23 24 25 26; do wget https://hgwdev.gi.ucsc.edu/~angie/nextstrainRecompute.2020-04-30/2020-04-${day}/nextstrain.nh -O tree/nextstrain-2020-04-${day}.nh; done
-    $ for day in 19 20 21 22 23 24 25 26; do wget https://hgwdev.gi.ucsc.edu/~angie/nextstrainRecompute.2020-04-30/2020-04-${day}/nextstrainSamples.vcf.gz -O vcf/nextstrain-2020-04-${day}.vcf.gz; done
+    $ wget https://hgwdev.gi.ucsc.edu/~angie/nextstrainRecompute.2020-04-30/2020-04-19/nextstrain.nh -O tree/nextstrain-2020-04-19.nh
+    $ wget https://hgwdev.gi.ucsc.edu/~angie/nextstrainRecompute.2020-04-30/2020-04-20/nextstrain.nh -O tree/nextstrain-2020-04-20.nh
+    $ wget https://hgwdev.gi.ucsc.edu/~angie/nextstrainRecompute.2020-04-30/2020-04-19/nextstrainSamples.vcf.gz -O vcf/nextstrain-2020-04-19.vcf.gz
+    $ wget https://hgwdev.gi.ucsc.edu/~angie/nextstrainRecompute.2020-04-30/2020-04-20/nextstrainSamples.vcf.gz -O vcf/nextstrain-2020-04-20.vcf.gz
 ```
 * The data wrangling for the above newick and VCF files from the Nextstrain data has been done by Angie Hinrichs (https://github.com/AngieHinrichs) at UCSC.
 
