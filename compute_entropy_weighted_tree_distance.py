@@ -94,45 +94,6 @@ def get_newick_string (tree):
     newick_string += ';'
     return newick_string
 
-def create_tree(tree_filename):
-    tree = Tree()
-    clade_roots = {}
-    f = open(tree_filename)
-    lines = f.readlines()
-    first_line = lines[0]
-    l = first_line.rstrip()
-    s1 = l.split(',')
-    s2 = [s.split(':')[0].replace('(', '').replace(')', '') for s in s1]
-    s3 = [s.split('|')[1] if (len(s.split('|')) > 1) else s for s in s2]
-    s4 = [s.replace("'", "") for s in s3]
-    stack = [(w.count('('), w.count(')')) for w in s1]
-    num_open = sum([s[0] for s in stack])
-    num_close = sum([s[1] for s in stack])
-
-    if ((num_open != num_close)):
-        print ('ERROR: PhyloTree in incorrect format!')
-        sys.exit()
-
-    curr_node = '0'
-    curr_idx = 0
-    parent_stack = []
-
-    for (k, species) in enumerate(s4):
-        no = stack[k][0]
-        nc = stack[k][1]
-        for i in range(no):
-            curr_node = str(int(curr_node)+1)
-            if len(parent_stack) == 0:
-                tree.create_node(curr_node, curr_node)
-            else:
-                tree.create_node(curr_node, curr_node, parent=parent_stack[-1])
-            parent_stack.append(curr_node)
-        tree.create_node(species, species, parent=parent_stack[-1])
-        for i in range(nc):
-            curr_idx += 1
-            parent_stack.pop()
-    return tree
-
 def get_all_node_ids (tree):
     return tree.nodes.keys()
 
@@ -156,18 +117,39 @@ def get_symmetric_difference (A, X, common_leaf_ids):
     d2 = len((set(X)-set(A)).intersection(common_leaf_ids)) 
     return (d1+d2)
 
-def get_split_distance(bid, tree1, tree2_splits, common_leaf_ids):
-    (A, B, bid) = get_branch_split(tree1, bid)
-    dist = [(get_symmetric_difference(A,X,common_leaf_ids), bid2) \
-               for (X,Y,bid2) in tree2_splits] 
-    min_dist = min(dist)[0]
-    ret = [(0, '-1')]
-    if (min_dist != len(tree1.leaves(bid))):
-        ret = [x for x in dist if (x[0] == min_dist)]
-    return ret
+def get_minimum_subclades (S, C, tree, curr_min):
+    marked = [0 for i in range(len(S))]
+    index = {}
+    for k,v in enumerate(S):
+        index[v] = k
+    subclades = 0
+    for (i, s) in enumerate(S):
+        if marked[i] == 0:
+            uppermost = s
+            marked[i] = 1
+            subclades += 1
+            if subclades > curr_min:
+                return 1e9
+            ancestors = tree.rsearch(s)
+            for anc in ancestors:
+                L = set([l.identifier for l in tree.leaves(anc)])
+                extra = (L-S).intersection(C)
+                if len(extra) == 0:
+                    for m in L.intersection(S):
+                        marked[index[m]] = 1
+                else:
+                    break
+    return subclades
+
+def get_subclade_difference(A, X, common_leaf_ids, tree1, tree2, min_dist):
+    S1 = (set(A)-set(X)).intersection(common_leaf_ids)
+    d1 = get_minimum_subclades (S1, common_leaf_ids, tree2, min_dist)
+    S2 = (set(X)-set(A)).intersection(common_leaf_ids)
+    d2 = get_minimum_subclades (S2, common_leaf_ids, tree1, min_dist)
+    return d1+d2
 
 def get_entropy_weighted_split_distance(bid, tree1, tree2, tree2_splits, \
-                                         common_leaf_ids):
+                                         common_leaf_ids, Z):
     if (len(common_leaf_ids) == 0):
         return [(0, 0, '-1')]
     (A, B, bid) = get_branch_split(tree1, bid)
@@ -175,28 +157,92 @@ def get_entropy_weighted_split_distance(bid, tree1, tree2, tree2_splits, \
     p = (1.0*s)/len(common_leaf_ids)
     q = 1.0 - p
     ent = entropy([p, q], base=2)
+    #ent = 2*min([p, q])
     dist = []
     min_dist = 1e9
+    min_dist_splits = []
     if (p == 0):
         return [(0, 0, '-1')]
     for (X,Y,bid2) in tree2_splits:
         diff = get_symmetric_difference(A,X,common_leaf_ids)
-        dist.append((diff, ent*diff, bid2))
+        dist.append((diff, ent*diff/Z, bid2))
         if (diff < min_dist):
             min_dist = diff
     if min_dist >= s: 
-        return [(s, ent*s, '-1')]
-    m = [x for x in dist if (x[0] == min_dist)]
-    ret = []
-    for i in range(len(m)):
-        found_anc = False
-        for j in range(len(m)):
-            if (i != j) and (tree2.is_ancestor(m[j][2], m[i][2])):
-                found_anc = True
-                break
-        if not found_anc:
-            ret.append(m[i])
+        return [(s, ent*s/Z, '-1')]
+    ret = [x for x in dist if (x[0] == min_dist)]
     return ret
+
+def calculate_n_divergence(all_dist, n):
+    return sum(all_dist[0:n])
+
+def get_total_entropy(tree1, tree2):
+    tree1_internal_nids = get_internal_node_ids(tree1)
+    tree1_leaf_node_ids = get_leaf_node_ids(tree1)
+    tree2_leaf_node_ids = get_leaf_node_ids(tree2)
+    common_leaf_ids = set(tree1_leaf_node_ids).intersection(set(tree2_leaf_node_ids))
+    E = 0
+    for bid in tree1_internal_nids:
+        (A, B, bid) = get_branch_split(tree1, bid)
+        s = len(set(A).intersection(common_leaf_ids))
+        p = (1.0*s)/len(common_leaf_ids)
+        q = 1.0 - p
+        ent = entropy([p, q], base=2)
+        E += ent
+    return E
+
+def get_entropy_weighted_total_distance(tree1, tree2, do_print):
+    tree1_internal_node_ids = get_internal_node_ids(tree1)
+    tree2_internal_node_ids = get_internal_node_ids(tree2)
+    
+    tree1_leaf_node_ids = get_leaf_node_ids(tree1)
+    tree2_leaf_node_ids = get_leaf_node_ids(tree2)
+    common_leaf_ids = set(tree1_leaf_node_ids).intersection(set(tree2_leaf_node_ids))
+    
+    tree2_splits = [get_branch_split(tree2, bid) for bid in \
+                         tree2_internal_node_ids] 
+
+    Z = get_total_entropy(tree1, tree2)
+
+    pool = Pool(processes=int(num_cores))
+    
+    worker = functools.partial(get_entropy_weighted_split_distance, tree1=tree1, \
+                               tree2=tree2, tree2_splits=tree2_splits, \
+                               common_leaf_ids = common_leaf_ids, Z = Z) 
+
+    C = pool.map(worker, tree1_internal_node_ids)
+
+    total_dist = 0.0
+    all_dist = []
+
+    to_print = []
+    for (k, bid) in enumerate(tree1_internal_node_ids):
+        tag1 = tree1.get_node(bid).tag
+        tree2_tags_arr = [tree2.get_node(m[2]).tag if m[2] != '-1' else '-1' \
+                       for m in C[k]] 
+        tree2_tags = ','.join(tree2_tags_arr)
+        if (do_print):
+            to_print.append(tag1+'\t'+tree2_tags+'\t'+str(C[k][0][0])+'\t'\
+                            +str(C[k][0][1]))
+        total_dist += C[k][0][1]
+        all_dist.append(C[k][0][1])
+
+    all_dist.sort(reverse=True)
+
+    return total_dist, to_print
+
+def permute_leaves(T):
+    tree = Tree(T)
+    leaves = get_leaf_node_ids(tree)
+    shuf_leaves = leaves[:] 
+    random.shuffle(shuf_leaves)
+    for k,nid in enumerate(leaves):
+        new_nid = shuf_leaves[k]
+        tree.update_node(nid, tag=new_nid, identifier='L'+str(k))
+    for k,nid in enumerate(leaves):
+        new_nid = shuf_leaves[k]
+        tree.update_node('L'+str(k), identifier=new_nid)
+    return tree
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Compute directed change '
@@ -207,10 +253,6 @@ if __name__ == "__main__":
                         help="tree 2 (in Newick format)")
     parser.add_argument("-CORES", type=str,
                         help="number of CPU cores (default=1) to use [OPTIONAL]")
-
-    if len(sys.argv) <= 4:
-        parser.print_help()
-        sys.exit(1)
 
     args = vars(parser.parse_args())
     T1_filename = args.get('T1', '')
@@ -227,50 +269,23 @@ if __name__ == "__main__":
     
     T1 = create_tree(T1_filename)
     T2 = create_tree(T2_filename)
-
+    
     T1_newick = get_newick_string(T1)
     T2_newick = get_newick_string(T2)
-    
     print 'T1 (in newick format) with internal nodes labelled: '
     print T1_newick 
-    
     print 'T2 (in newick format) with internal nodes labelled: '
     print T2_newick 
 
+    dist_t1_t2, to_print = get_entropy_weighted_total_distance(T1, T2, True) 
+    print '#T1_node\tT2_best_matches\tmatching_split_distance\tentropy_weighted_split_distance'
+    print '\n'.join(to_print)
+                        
+    dist_t2_t1, to_print = get_entropy_weighted_total_distance(T2, T1, True) 
+    print '#T2_node\tT1_best_matches\tmatching_split_distance\tentropy_weighted_split_distance'
+    print '\n'.join(to_print)
 
-    T1_internal_node_ids = get_internal_node_ids(T1)
-    T2_internal_node_ids = get_internal_node_ids(T2)
-    
-    T1_leaf_node_ids = get_leaf_node_ids(T1)
-    T2_leaf_node_ids = get_leaf_node_ids(T2)
-    common_leaf_ids = set(T1_leaf_node_ids).intersection(set(T2_leaf_node_ids))
-    
-    T2_splits = [get_branch_split(T2, bid) for bid in \
-                         T2_internal_node_ids] 
+    print 'D(T1,T2) = ', dist_t1_t2 
+    print 'D(T2,T1) = ', dist_t2_t1 
+    print 'S(T1,T2) = ', (dist_t1_t2+dist_t2_t1)/2
 
-    pool = Pool(processes=int(num_cores))
-    
-    worker = functools.partial(get_entropy_weighted_split_distance, tree1=T1, \
-                               tree2=T2, tree2_splits=T2_splits, \
-                               common_leaf_ids = common_leaf_ids) 
-
-    # directed change for each branch in T1
-    C = pool.map(worker, T1_internal_node_ids)
-
-    total_dist = 0.0
-    print '#T1_node\tT2_best_matches\tmatching_split_distance'+\
-            '\tentropy_weighted_split_distance'
-    for (k, bid) in enumerate(T1_internal_node_ids):
-        tag1 = T1.get_node(bid).tag
-        T2_tags_arr = [T2.get_node(m[2]).tag if m[2] != '-1' else '-1' \
-                       for m in C[k]] 
-        T2_tags = ','.join(T2_tags_arr)
-        print tag1+'\t'+T2_tags+'\t'+str(C[k][0][0])+'\t'+str(C[k][0][1])
-        total_dist += C[k][0][1]
-
-    print 'T1 size: ', len(T1_leaf_node_ids)
-    print 'T2 size: ', len(T2_leaf_node_ids)
-    print 'Total common leaves: ', len(list(common_leaf_ids))
-    print 'Total entropy-weighted split distance: ', total_dist
-
-    

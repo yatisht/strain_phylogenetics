@@ -1,5 +1,4 @@
 from treelib import Node, Tree
-import multiprocessing
 import sys
 import io
 import argparse
@@ -222,6 +221,8 @@ if __name__ == "__main__":
                     header_found = True
                     words = line.split()
                     vcf_ids = words[9:]
+#                    vcf_ids = [w.replace('/', '_').replace('|', '_') for w in \
+#                               words[9:]]
             else:
                 total_variants += 1
                 print_variant = False
