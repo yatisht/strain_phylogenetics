@@ -9,6 +9,16 @@ def isCtoT(site):
 def isGtoT(site):
     return any([(s[0]=='G' and s[-1] =='T') for s in site.split(',')])
 
+
+def isRare(n,cutoff):
+    return (n <= cutoff)
+
+def isExtremal (s, n, cutoff, min_n_for_s, max_s_for_n):
+    return ((n > cutoff) and (n==min_n_for_s[s][0]) and \
+            (s==max_s_for_n[n][0]) and \
+            all([(s>v[0]) for (k,v) in max_s_for_n.items() if (k<n)]) and \
+            all([(n<v[0]) for (k,v) in min_n_for_s.items() if (k>s)]))
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Identify extremal sites ')
     parser.add_argument("-in", type=str,
@@ -39,7 +49,7 @@ if __name__ == "__main__":
     sites = {}
     x = []
     y = []
-    cutoff = 0
+    saturated_s = {}
     with file(parsimony_filename,'r') as f:
         for line in f:
             if 'alt_alleles' in line:
@@ -58,8 +68,7 @@ if __name__ == "__main__":
                 mn = min_n_for_s.get(s, [1e6, []])
                 ms = max_s_for_n.get(n, [0, []])
                 if n == s:
-                    if n > cutoff:
-                        cutoff = n
+                    saturated_s[s] = 1+saturated_s.get(s, 0)
                 if n == mn[0]:
                     mn[1].append(site)
                     min_n_for_s[s] = mn
@@ -71,12 +80,11 @@ if __name__ == "__main__":
                 if s > ms[0]:
                     max_s_for_n[n] = [s, [site]]
     
+    cutoff = max([k for (k,v) in saturated_s.items() if (v>1)])
     log_base = 2
     for site in sites.keys():
         (n,s,s_fwd, s_bck) = sites[site]
-        if (n>cutoff) and (n==min_n_for_s[s][0]) and (s==max_s_for_n[n][0]) and\
-           all([(s>v[0]) for (k,v) in max_s_for_n.items() if (k<n)]) and \
-           all([(n<v[0]) for (k,v) in min_n_for_s.items() if (k>s)]):
+        if (isExtremal(s, n, cutoff, min_n_for_s, max_s_for_n)):
             print site, 'alt_alleles='+str(n), 'parsimony_score='+str(s),\
                     'parsimony_score_forward='+str(s_fwd),\
                     'parsimony_score_backward='+str(s_bck)
