@@ -232,7 +232,7 @@ def get_entropy_weighted_total_distance(tree1, tree2, do_print):
     return total_dist, to_print
 
 def permute_leaves(T):
-    tree = Tree(T)
+    tree = Tree(tree=T, deep=True)
     leaves = get_leaf_node_ids(tree)
     shuf_leaves = leaves[:] 
     random.shuffle(shuf_leaves)
@@ -251,6 +251,8 @@ if __name__ == "__main__":
                         help="tree 1 (in Newick format)")
     parser.add_argument("-T2", type=str,
                         help="tree 2 (in Newick format)")
+    parser.add_argument("-permutedNorm", type=str,
+                        help="use permuted trees (default=0)")
     parser.add_argument("-CORES", type=str,
                         help="number of CPU cores (default=1) to use [OPTIONAL]")
 
@@ -266,10 +268,17 @@ if __name__ == "__main__":
     num_cores = args.get('CORES', '')
     if (num_cores == None):
         num_cores = '1'
+    permuted_norm = args.get('permutedNorm', '')
+    if (permuted_norm == None):
+        permuted_norm = '0'
     
     T1 = create_tree(T1_filename)
     T2 = create_tree(T2_filename)
     
+    if (permuted_norm == '1'):
+        T1_p = permute_leaves(T1)
+        T2_p = permute_leaves(T2)
+
     T1_newick = get_newick_string(T1)
     T2_newick = get_newick_string(T2)
     print 'T1 (in newick format) with internal nodes labelled: '
@@ -289,3 +298,9 @@ if __name__ == "__main__":
     print 'D(T2,T1) = ', dist_t2_t1 
     print 'S(T1,T2) = ', (dist_t1_t2+dist_t2_t1)/2
 
+    if (permuted_norm == '1'):
+        dist_t1_t2_p, to_print = get_entropy_weighted_total_distance(T1, T2_p, False) 
+        dist_t2_t1_p, to_print = get_entropy_weighted_total_distance(T2, T1_p, False) 
+        print 'D(T1,T2_p) = ', dist_t1_t2_p 
+        print 'D(T2,T1_p) = ', dist_t2_t1_p 
+        print 'S_p(T1,T2) = ', (dist_t1_t2+dist_t2_t1)/(dist_t1_t2_p+dist_t2_t1_p)
