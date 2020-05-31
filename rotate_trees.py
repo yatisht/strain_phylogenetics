@@ -111,6 +111,7 @@ def rotate_trees(T1_leaves_order, T2):
     curr_nid = '1'
     tree.create_node(curr_nid, curr_nid)
     curr_nodes = ['1']
+    num_rot = 0
     while (len(curr_nodes) > 0):
         new_nodes = []
         for n in curr_nodes:
@@ -120,12 +121,14 @@ def rotate_trees(T1_leaves_order, T2):
             s = [(get_avg_rank([l.identifier for l in T2.leaves(c)], \
                                T1_order_dict), c) for c in \
                  curr_children]
-            s.sort(key=lambda x: x[0])
-            for i in s:
+            sorted_s = sorted(s, key=lambda x: x[0])
+            if sorted_s != s:
+                num_rot += 1
+            for i in sorted_s:
                 tree.create_node(i[1], i[1], parent=n)
                 new_nodes.append(i[1])
         curr_nodes = new_nodes 
-    return tree
+    return tree, num_rot
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Rotate trees for better '
@@ -162,11 +165,13 @@ if __name__ == "__main__":
     T1 = create_tree(T1_filename)
     T2 = create_tree(T2_filename)
 
-    for n in range(3):
+    n1=1
+    n2=1
+    while (n1+n2 > 0):
         (T1_leaves_ordered, T1_newick) = get_newick_string(T1)
-        T2 = rotate_trees(T1_leaves_ordered, T2)
+        T2,n1 = rotate_trees(T1_leaves_ordered, T2)
         (T2_leaves_ordered, T2_newick) = get_newick_string(T2)
-        T1 = rotate_trees(T2_leaves_ordered, T1)
+        T1,n2 = rotate_trees(T2_leaves_ordered, T1)
     
     f1 = open(T1_outfilename, 'w')
     f2 = open(T2_outfilename, 'w')
