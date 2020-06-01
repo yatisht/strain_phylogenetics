@@ -100,7 +100,7 @@ def Jaccard_similarity(A, B):
 def get_avg_rank (S, rank_dict):
     #num = sum([log(1+rank_dict.get(s,0)) for s in S])
     num = sum([rank_dict.get(s,0) for s in S])
-    den = 1+sum([1 if s in rank_dict.keys() else 0 for s in S])
+    den = 1e-6+sum([1 if s in rank_dict.keys() else 0 for s in S])
     return (1.0*num)/den #if den==0 else 1e6
 
 def rotate_trees(T1_leaves_order, T2):
