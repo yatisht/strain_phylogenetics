@@ -47,6 +47,14 @@ This repository provides tools primarily designed for analyzing Nextstrain (http
     $ python identify_extremal_sites.py -in nextstrain-2020-04-19_PARSIMONY.txt -ignoreCtoT=1 -ignoreGtoT=1
 ```
 
+### Plot Extremal Sites  
+```
+    $ python generate_plot_extremal_sites_data.py -in nextstrain-2020-04-19_PARSIMONY.txt > plot_extremal_sites_data.txt
+    $ Rscript --vanilla plot_parsimony.r plot_extremal_sites_data.txt extremal_sites_plot.pdf
+```
+* The above python command first creates raw input data for the extremal sites plot. Next, the R command (which should be executed after installing the *plyr* package) accepts the generated data and creates a log(allele count) by parsimony plot for all variants sites in a given vcf. It produces three plots, one of all data, one ignoring C>U mutations and one ignoring C>U and G>U mutations, as shown below. 
+![Extremal](/images/extremal.png)
+
 ### Compute distances between tree pairs
 ```
     $ python compute_entropy_weighted_tree_distance.py -T1 tree/nextstrain-2020-04-19.nh -T2 tree/nextstrain-2020-04-20.nh -CORES=2 > dist_nextstrain-2020-04-19_nextstrain-2020-04-20.txt
