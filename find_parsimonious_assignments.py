@@ -138,10 +138,6 @@ def get_most_parsimonious_transitions (tree, bfs, bfs_idx, var_ids):
         states[node_idx] = state
         if (state != par_state):
             leaves = tree.leaves(nid)
-            if (len(leaves) < 4):
-                for l in leaves:
-                    if (states[bfs_idx[l.identifier]] == state):
-                        flagged_leaves.append(l.identifier)
             if (state == 1):
                 forward_mutations.append(nid)
             else:
@@ -150,10 +146,18 @@ def get_most_parsimonious_transitions (tree, bfs, bfs_idx, var_ids):
         leaves = tree.leaves(nid)
         l_f = set([l for l in leaves if states[bfs_idx[l.identifier]] == 1])
         leaves_affected_forward.append(l_f)
+        if (len(leaves) < 4):
+            for l in leaves:
+                if (states[bfs_idx[l.identifier]] == 1):
+                    flagged_leaves.append(l.identifier)
     for nid in back_mutations:
         leaves = tree.leaves(nid)
         l_b = set([l for l in leaves if states[bfs_idx[l.identifier]] == 0])
         leaves_affected_backward.append(l_b)
+        if (len(leaves) < 4):
+            for l in leaves:
+                if (states[bfs_idx[l.identifier]] == 0):
+                    flagged_leaves.append(l.identifier)
     for i in range(len(leaves_affected_forward)):
         for j in range(i):
             leaves_affected_forward[j] = leaves_affected_forward[j] - \
