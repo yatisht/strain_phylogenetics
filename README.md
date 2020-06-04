@@ -74,7 +74,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 ```
     $ python rotate_trees.py -T1 tree/pruned-sumtree-for-cog.nh -T2 tree/pruned-cog-for-sumtree.nh -T1_out rot-pruned-sumtree-for-cog.nh -T2_out rot-pruned-cog-for-sumtree.nh
 ```
-* The above command completes in under 1 sec and produces rotated trees (rot-pruned-cog-for-sumtree.nh and rot-pruned-sumtree-for-cog.nh) with a much improved tanglegram as seen below (images generated with the help of [cophylo](https://www.rdocumentation.org/packages/phytools/versions/0.7-20/topics/cophylo) tool).
+* The above command completes in under 1 sec and produces rotated trees (rot-pruned-cog-for-sumtree.nh and rot-pruned-sumtree-for-cog.nh) with a much improved tanglegram as seen below (images generated with the help of [cophylo](https://www.rdocumentation.org/packages/phytools/versions/0.7-20/topics/cophylo) tool, setting rotate to FALSE).
 
 ![Rot-tanglegrams](/images/tanglegrams_comparison.png)
 
