@@ -154,7 +154,7 @@ def get_entropy_weighted_split_distance(bid, tree1, tree2, tree2_splits, \
         return [(0, 0, '-1')]
     (A, B, bid) = get_branch_split(tree1, bid)
     s = len(set(A).intersection(common_leaf_ids))
-    p = (1.0*s)/len(common_leaf_ids)
+    p = (1.0*s)/max(len(common_leaf_ids),1e-9)
     q = 1.0 - p
     ent = entropy([p, q], base=2)
     #ent = 2*min([p, q])
@@ -301,6 +301,6 @@ if __name__ == "__main__":
     if (permuted_norm == '1'):
         dist_t1_t2_p, to_print = get_entropy_weighted_total_distance(T1, T2_p, False) 
         dist_t2_t1_p, to_print = get_entropy_weighted_total_distance(T2, T1_p, False) 
-        print 'D(T1,T2_p) = ', dist_t1_t2_p 
-        print 'D(T2,T1_p) = ', dist_t2_t1_p 
+        #print 'D(T1,T2_p) = ', dist_t1_t2_p 
+        #print 'D(T2,T1_p) = ', dist_t2_t1_p 
         print 'S_p(T1,T2) = ', (dist_t1_t2+dist_t2_t1)/(dist_t1_t2_p+dist_t2_t1_p)
