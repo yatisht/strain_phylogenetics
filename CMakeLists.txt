@@ -10,7 +10,7 @@ FIND_PACKAGE(Boost COMPONENTS program_options iostreams REQUIRED)
 
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
-add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
+#add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
 
 add_executable(find_parsimonious_assignments
     src/tree.cpp

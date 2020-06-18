@@ -8,6 +8,7 @@
 ```
     $ git clone https://github.com/yatisht/strain_phylogenetics
     $ cd strain_phylogenetics
+    $ git checkout dev-c++
     $ git clone https://github.com/01org/tbb
     $ mkdir build
     $ cd build
