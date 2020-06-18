@@ -13,7 +13,7 @@ size_t printer_body::operator()(printer_input input) {
         int8_t n1;
         int8_t n2;
 
-        for (i=0; i<12; i++) {
+        for (i=0; i<16; i++) {
             parsimony_score += input.mutation_nodes[i].size();
         }
 
@@ -28,7 +28,7 @@ size_t printer_body::operator()(printer_input input) {
         
         printf("parsimony_score=%zu\t", parsimony_score);
         
-        for (i=0; i<12; i++) {
+        for (i=0; i<16; i++) {
             curr = 0;
             tot = input.mutation_nodes[i].size();
             if (tot>0) {
@@ -44,7 +44,7 @@ size_t printer_body::operator()(printer_input input) {
             }
         }
         
-        for (i=0; i<12; i++) {
+        for (i=0; i<16; i++) {
             curr = 0;
             tot = input.mutation_clade_sizes[i].size();
             if (tot>0) {
