@@ -4,7 +4,7 @@ printer_input mapper_body::operator()(mapper_input input) {
     printer_input output;
 
     output.variant = input.variant;
-    output.alt_alleles = 0;
+    output.ref_nuc = input.ref_nuc;
     if (input.variant != "") {
         size_t num_nodes = input.bfs->size();
         std::vector<int8_t> states(num_nodes);
@@ -28,13 +28,16 @@ printer_input mapper_body::operator()(mapper_input input) {
             }
         }
 
+        for (int j=0; j<4; j++) {
+            output.alt_alleles[j] = 0;
+        }
+
         for (auto v: input.variants) {
             size_t pos = std::get<0> (v);
             std::vector<int8_t> nucs = std::get<1> (v);
             std::string nid = (*input.variant_ids)[pos];
             if ((*input.bfs_idx).find(nid) != (*input.bfs_idx).end()) {
                 size_t idx= (*input.bfs_idx)[nid];
-                bool is_alt = false;
                 for (int j=0; j<4; j++) {
                     scores[idx][j] = (int) num_nodes;
                 }
@@ -42,12 +45,6 @@ printer_input mapper_body::operator()(mapper_input input) {
                     if (nuc < 4) {
                         scores[idx][nuc] = 0;
                     }
-                    if ((nuc != input.ref_nuc) && (nucs.size() != 4)) {
-                        is_alt = true;
-                    }
-                }
-                if (is_alt) {
-                    output.alt_alleles++;
                 }
             }
             else {
@@ -120,47 +117,44 @@ printer_input mapper_body::operator()(mapper_input input) {
                         break;
                     }
                 }
+                auto mut_idx = 4*par_state + state;
+                output.mutation_nodes[mut_idx].push_back(node->identifier);
                 if (state != clade_state) {
-                    output.forward_mutation_nodes.push_back(node->identifier);
+                    output.mutation_type[mut_idx].push_back('F');
                 }
                 else {
-                    output.backward_mutation_nodes.push_back(node->identifier);
+                    output.mutation_type[mut_idx].push_back('B');
                 }
             }
         }
 
-        for (auto nid: output.forward_mutation_nodes) {
-            auto leaves = input.T->get_leaves(nid);
-            size_t clade_size = 0;
-            size_t num_leaves = leaves.size();
-            for (auto l: leaves) {
-                if (missing.find(l->identifier) == missing.end()) {
-                    if (num_leaves < 4) {
-                        output.flagged_leaves.insert(l->identifier);
-                    }
-                    if (states[(*input.bfs_idx)[l->identifier]] == states[(*input.bfs_idx)[nid]]) {
-                        clade_size++;
+        for (auto mut_idx=0; mut_idx<16; mut_idx++) {
+            for (auto nid: output.mutation_nodes[mut_idx]) {
+                auto leaves = input.T->get_leaves(nid);
+                size_t clade_size = 0;
+                size_t num_leaves = leaves.size();
+                for (auto l: leaves) {
+                    if (missing.find(l->identifier) == missing.end()) {
+                        if (num_leaves < 4) {
+                            output.flagged_leaves.insert(l->identifier);
+                        }
+                        if (states[(*input.bfs_idx)[l->identifier]] == states[(*input.bfs_idx)[nid]]) {
+                            clade_size++;
+                        }
                     }
                 }
+                output.mutation_clade_sizes[mut_idx].push_back(clade_size);
             }
-            output.forward_mutation_clade_sizes.push_back(clade_size);
         }
 
-        for (auto nid: output.backward_mutation_nodes) {
-            auto leaves = input.T->get_leaves(nid);
-            size_t clade_size = 0;
-            size_t num_leaves = leaves.size();
-            for (auto l: leaves) {
-                if (missing.find(l->identifier) == missing.end()) {
-                    if (num_leaves < 4) {
-                        output.flagged_leaves.insert(l->identifier);
-                    }
-                    if (states[(*input.bfs_idx)[l->identifier]] == states[(*input.bfs_idx)[nid]]) {
-                        clade_size++;
-                    }
+        auto all_leaves = input.T->get_leaves();
+        for (auto l: all_leaves) {
+            if (missing.find(l->identifier) == missing.end()) {
+                auto allele = states[(*input.bfs_idx)[l->identifier]];
+                if (allele != input.ref_nuc) {
+                    output.alt_alleles[allele]++;
                 }
             }
-            output.backward_mutation_clade_sizes.push_back(clade_size);
         }
 
     }

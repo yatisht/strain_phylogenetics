@@ -12,14 +12,12 @@ struct mapper_input {
 };
 
 struct printer_input {
-    size_t alt_alleles;
+    int8_t ref_nuc;
     std::string variant;
-    std::vector<std::string> forward_mutation_nodes;
-    std::vector<std::string> backward_mutation_nodes;
-    std::vector<size_t> forward_mutation_clade_sizes;
-    std::vector<size_t> backward_mutation_clade_sizes;
-//    std::set<std::string> leaves_affected_forward;
-//    std::set<std::string> leaves_affected_backward;
+    size_t alt_alleles[4];
+    std::vector<std::string> mutation_nodes[16];
+    std::vector<size_t> mutation_clade_sizes[16];
+    std::vector<char> mutation_type[16];
     std::set<std::string> flagged_leaves;
 };
 
