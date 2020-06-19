@@ -58,8 +58,6 @@ size_t printer_body::operator()(printer_input input) {
             }
 
             io_lock.lock();
-            printf("%d\t", input.print_vcf);
-            printf("%s\t", input.line.c_str());
             printf("%s\t", input.variant.c_str());
 
             for (i=0; i<4; i++) {
