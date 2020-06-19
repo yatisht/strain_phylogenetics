@@ -1,16 +1,18 @@
 #include "graph.hpp"
 
+std::mutex error_lock;
+
 printer_input mapper_body::operator()(mapper_input input) {
     printer_input output;
 
     output.variant = input.variant;
+    output.line = input.line;
+    output.print_vcf = input.print_vcf;
     output.ref_nuc = input.ref_nuc;
     if (input.variant != "") {
         size_t num_nodes = input.bfs->size();
         std::vector<int8_t> states(num_nodes);
         std::vector<std::vector<int>> scores(num_nodes);
-
-        std::set<std::string> missing;
 
         for (size_t i=0; i<num_nodes; i++) {
             scores[i].resize(4);
@@ -48,7 +50,10 @@ printer_input mapper_body::operator()(mapper_input input) {
                 }
             }
             else {
-                missing.insert(nid);
+                error_lock.lock();
+                fprintf (stderr, "ERROR: %s in VCF not found in the tree!\n", nid.c_str());
+                error_lock.unlock();
+                exit(1);
             }
         }
 
@@ -80,7 +85,7 @@ printer_input mapper_body::operator()(mapper_input input) {
                 }
             }
         }
-        
+
         // Sankoff: backward pass
         for (auto it=(*input.bfs).begin(); it!=(*input.bfs).end(); it++) {
             auto node = (*it);
@@ -134,13 +139,11 @@ printer_input mapper_body::operator()(mapper_input input) {
                 size_t clade_size = 0;
                 size_t num_leaves = leaves.size();
                 for (auto l: leaves) {
-                    if (missing.find(l->identifier) == missing.end()) {
-                        if (num_leaves < 4) {
-                            output.flagged_leaves.insert(l->identifier);
-                        }
-                        if (states[(*input.bfs_idx)[l->identifier]] == states[(*input.bfs_idx)[nid]]) {
-                            clade_size++;
-                        }
+                    if (num_leaves < 4) {
+                        output.flagged_leaves.insert(l->identifier);
+                    }
+                    if (states[(*input.bfs_idx)[l->identifier]] == states[(*input.bfs_idx)[nid]]) {
+                        clade_size++;
                     }
                 }
                 output.mutation_clade_sizes[mut_idx].push_back(clade_size);
@@ -149,12 +152,35 @@ printer_input mapper_body::operator()(mapper_input input) {
 
         auto all_leaves = input.T->get_leaves();
         for (auto l: all_leaves) {
-            if (missing.find(l->identifier) == missing.end()) {
-                auto allele = states[(*input.bfs_idx)[l->identifier]];
-                if (allele != input.ref_nuc) {
-                    output.alt_alleles[allele]++;
+            auto allele = states[(*input.bfs_idx)[l->identifier]];
+            if (allele != input.ref_nuc) {
+                output.alt_alleles[allele]++;
+            }
+        }
+
+        if (input.print_vcf) {
+            for (auto w: input.words) {
+                output.words.push_back(w);
+            }
+            std::unordered_map<int8_t, int8_t> state_to_variant_id;
+            int8_t curr_variant_id = 1;
+            for (int8_t j=0; j<4; j++) {
+                if (output.alt_alleles[j] > 0) {
+                    output.alts.push_back(j);
+                    state_to_variant_id[j] = curr_variant_id++;
                 }
             }
+            for (size_t i=0; i<(*input.variant_ids).size(); i++) {
+                auto nid = (*input.variant_ids)[i];
+                int8_t allele = states[(*input.bfs_idx)[nid]];
+                if (allele == input.ref_nuc) {
+                    output.sample_variant_id.push_back(0);
+                }
+                else {
+                    output.sample_variant_id.push_back(state_to_variant_id[allele]);
+                }
+            }
+
         }
 
     }

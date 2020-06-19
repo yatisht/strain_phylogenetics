@@ -1,10 +1,14 @@
 #include "tree.hpp"
 #include <set>
+#include <mutex>
 
 struct mapper_input {
     Tree* T;
     int8_t ref_nuc;
     std::string variant;
+    bool print_vcf;
+    std::string line;
+    std::vector<std::string> words;
     std::vector<Node*>* bfs;
     std::unordered_map<std::string, size_t>* bfs_idx;
     std::vector<std::tuple<size_t, std::vector<int8_t>>> variants;
@@ -12,7 +16,12 @@ struct mapper_input {
 };
 
 struct printer_input {
+    bool print_vcf;
+    std::string line;
+    std::vector<std::string> words;
     int8_t ref_nuc;
+    std::vector<int8_t> alts;
+    std::vector<int8_t> sample_variant_id;
     std::string variant;
     size_t alt_alleles[4];
     std::vector<std::string> mutation_nodes[16];

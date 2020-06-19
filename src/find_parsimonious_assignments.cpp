@@ -57,11 +57,13 @@ int main(int argc, char** argv){
     std::string vcf_filename;
     uint32_t num_cores = tbb::task_scheduler_init::default_num_threads();
     uint32_t num_threads;
+    bool print_vcf = false;
     po::options_description desc{"Options"};
     desc.add_options()
         ("tree", po::value<std::string>(&tree_filename)->required(), "Input tree file")
         ("vcf", po::value<std::string>(&vcf_filename)->required(), "Input VCF file (in uncompressed or gzip-compressed format)")
         ("threads", po::value<uint32_t>(&num_threads)->default_value(num_cores), "Number of threads")
+        ("print-vcf", po::bool_switch(&print_vcf), "Print VCF with variants resolved instead of printing a parsimony file.")
         ("help", "Print help messages");
     
     po::options_description all_options;
@@ -90,7 +92,9 @@ int main(int argc, char** argv){
         bfs_idx[bfs[idx]->identifier] = idx;
     }
 
-    std::cout << get_newick_string(T, true) << std::endl; 
+    if (!print_vcf) {
+        std::cout << get_newick_string(T, true) << std::endl; 
+    }
 
     std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
     boost::iostreams::filtering_istream instream;
@@ -119,8 +123,12 @@ int main(int argc, char** argv){
             std::getline(instream, s);
             std::vector<std::string> words;
             split(s, words);
+            inp.variant = "";
+            inp.print_vcf = print_vcf;
+            if (not header_found) {
+              inp.line = s;
+            }
             if ((not header_found) && (words.size() > 1)) {
-              inp.variant = "";
               if (words[1] == "POS") {
                   for (size_t j=9; j < words.size(); j++) {
                     variant_ids.push_back(words[j]);
@@ -133,9 +141,14 @@ int main(int argc, char** argv){
                 fprintf(stderr, "ERROR! Incorrect VCF format.\n");
                 exit(1);
               }
+              if (print_vcf) {
+                  inp.words.clear();
+                  for (int j=0; j<9; j++) {
+                      inp.words.push_back(words[j]);
+                  }
+              }
               std::vector<std::string> alleles;
               alleles.clear();
-              inp.variant = "";
               inp.variant = words[3] + words[1] + words[4];
               split(words[4], ',', alleles);
               inp.T = &T;
@@ -172,3 +185,4 @@ int main(int argc, char** argv){
 
     return 0;
 }
+
