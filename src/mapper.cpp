@@ -1,7 +1,5 @@
 #include "graph.hpp"
 
-std::mutex error_lock;
-
 printer_input mapper_body::operator()(mapper_input input) {
     printer_input output;
 
@@ -50,10 +48,10 @@ printer_input mapper_body::operator()(mapper_input input) {
                 }
             }
             else {
-                error_lock.lock();
-                fprintf (stderr, "ERROR: %s in VCF not found in the tree!\n", nid.c_str());
+                io_lock.lock();
+                fprintf (stderr, "\nERROR: %s in VCF not found in the tree!\n", nid.c_str());
                 exit(1);
-                error_lock.unlock();
+                io_lock.unlock();
             }
         }
 
@@ -173,10 +171,10 @@ printer_input mapper_body::operator()(mapper_input input) {
             for (size_t i=0; i<(*input.variant_ids).size(); i++) {
                 auto nid = (*input.variant_ids)[i];
                 if (input.bfs_idx->find(nid) == input.bfs_idx->end()) {
-                    error_lock.lock();
-                    fprintf (stderr, "ERROR: %s in VCF not found in the tree!\n", nid.c_str());
+                    io_lock.lock();
+                    fprintf (stderr, "\nERROR: %s in VCF not found in the tree!\n", nid.c_str());
                     exit(1);
-                    error_lock.unlock();
+                    io_lock.unlock();
                 }
                 int8_t allele = states[(*input.bfs_idx)[nid]];
                 if (allele == input.ref_nuc) {

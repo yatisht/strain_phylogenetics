@@ -2,6 +2,8 @@
 #include <set>
 #include <mutex>
 
+extern std::mutex io_lock;
+
 struct mapper_input {
     Tree* T;
     int8_t ref_nuc;
