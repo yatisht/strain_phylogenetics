@@ -10,8 +10,6 @@ FIND_PACKAGE(Boost COMPONENTS program_options iostreams REQUIRED)
 
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
-#add_compile_definitions(TBB_SUPPRESS_DEPRECATED_MESSAGES)
-
 add_executable(find_parsimonious_assignments
     src/tree.cpp
     src/mapper.cpp
@@ -19,4 +17,5 @@ add_executable(find_parsimonious_assignments
     src/find_parsimonious_assignments.cpp
     )
 
+TARGET_COMPILE_OPTIONS(find_parsimonious_assignments PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
 TARGET_LINK_LIBRARIES(find_parsimonious_assignments PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS})

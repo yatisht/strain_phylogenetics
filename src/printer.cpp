@@ -30,7 +30,7 @@ size_t printer_body::operator()(printer_input input) {
             else {
                 printf(".\t");
             }
-            printf("%s\t%s\t%s\t%s\t", input.words[5].c_str(), input.words[6].c_str(), input.words[7].c_str(), input.words[8].c_str());
+            printf("%s\t%s\t.\t%s\t", input.words[5].c_str(), input.words[6].c_str(), input.words[8].c_str());
             tot = input.sample_variant_id.size();
             curr = 0;
             if (tot>0) {
