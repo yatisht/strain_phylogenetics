@@ -104,12 +104,16 @@ printer_input mapper_body::operator()(mapper_input input) {
                     state = j;
                 }
             }
+            if (scores[node_idx][input.ref_nuc] == min_s) {
+                state = input.ref_nuc;
+            }
             states[node_idx] = state;
+
+            auto root_state = states[(*input.bfs_idx)[input.T->root->identifier]];
 
             if (node->parent == NULL) {
                 par_state = state;
             }
-            auto root_state = states[(*input.bfs_idx)[input.T->root->identifier]];
             if (state != par_state) {
                 auto clade_state = root_state;
                 auto par_id = node->parent->identifier;
