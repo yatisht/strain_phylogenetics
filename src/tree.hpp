@@ -37,6 +37,7 @@ class Tree {
         size_t max_level;
         Node* root;
 
+        size_t curr_internal_node;
         size_t get_max_level ();
         std::vector<Node*> get_leaves();
         std::vector<Node*> get_leaves(std::string nid);

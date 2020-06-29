@@ -1,4 +1,4 @@
-#include "graph.hpp"
+#include "fpa_graph.hpp"
 
 printer_input mapper_body::operator()(mapper_input input) {
     printer_input output;

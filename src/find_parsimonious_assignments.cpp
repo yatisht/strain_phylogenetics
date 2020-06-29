@@ -8,7 +8,7 @@
 #include <tbb/scalable_allocator.h>
 #include <tbb/task_scheduler_init.h>
 //#include "zlib.h"
-#include "graph.hpp"
+#include "fpa_graph.hpp"
 
 namespace po = boost::program_options;
 

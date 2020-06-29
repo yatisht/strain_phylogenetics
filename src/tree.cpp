@@ -155,6 +155,7 @@ void Tree::move_node (std::string source_id, std::string dest_id) {
     Node* curr_parent = source->parent;
 
     source->parent = destination;
+    destination->children.push_back(source);
 
     // Remove source from curr_parent
     size_t source_idx = 0;
@@ -384,7 +385,7 @@ Tree create_tree_from_newick (std::string filename) {
         exit(1);
     }
 
-    size_t curr_internal_node = 0;
+    T.curr_internal_node = 0;
     std::stack<std::string> parent_stack;
 
     for (size_t i=0; i<leaves.size(); i++) {
@@ -392,7 +393,7 @@ Tree create_tree_from_newick (std::string filename) {
         auto no = num_open[i];
         auto nc = num_close[i];
         for (size_t j=0; j<no; j++) {
-            std::string nid = std::to_string(++curr_internal_node);
+            std::string nid = std::to_string(++T.curr_internal_node);
             if (parent_stack.size() == 0) {
                 T.create_node(nid, nid);
             }
@@ -409,3 +410,4 @@ Tree create_tree_from_newick (std::string filename) {
 
     return T;
 }
+
