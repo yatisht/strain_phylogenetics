@@ -104,8 +104,10 @@ printer_input mapper_body::operator()(mapper_input input) {
                     state = j;
                 }
             }
-            if (scores[node_idx][input.ref_nuc] == min_s) {
-                state = input.ref_nuc;
+            if (state != par_state) {
+                if (scores[node_idx][input.ref_nuc] == min_s) {
+                    state = input.ref_nuc;
+                }
             }
             states[node_idx] = state;
 

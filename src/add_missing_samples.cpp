@@ -111,6 +111,7 @@ int main(int argc, char** argv){
     std::vector<std::string> missing_samples;
     std::unordered_map<Node*, std::vector<mutation>> node_mutations;
     std::vector<std::vector<mutation>> missing_sample_mutations;
+    size_t num_missing = 0;
 
     tbb::task_scheduler_init init(num_threads);
 
@@ -127,8 +128,13 @@ int main(int argc, char** argv){
             if ((not header_found) && (words.size() > 1)) {
               if (words[1] == "POS") {
                   for (size_t j=9; j < words.size(); j++) {
-                    variant_ids.push_back(words[j]);
+                    variant_ids.emplace_back(words[j]);
+                    if (bfs_idx.find(words[j]) == bfs_idx.end()) {
+                        missing_samples.emplace_back(words[j]);
+                        num_missing++;
+                    }
                   }
+                  missing_sample_mutations.resize(num_missing);
                   header_found = true;
               }
             }
@@ -139,7 +145,7 @@ int main(int argc, char** argv){
               }
               std::vector<std::string> alleles;
               alleles.clear();
-              inp.variant_pos = std::stoi(words[1]); //TODO
+              inp.variant_pos = std::stoi(words[1]); 
               split(words[4], ',', alleles);
               inp.T = &T;
               inp.bfs = &bfs;
@@ -157,11 +163,11 @@ int main(int argc, char** argv){
                      int allele_id = std::stoi(words[j]);
                      if (allele_id > 0) { 
                         std::string allele = alleles[allele_id-1];
-                        inp.variants.push_back(std::make_tuple(j-9, get_nuc_id(allele[0])));
+                        inp.variants.emplace_back(std::make_tuple(j-9, get_nuc_id(allele[0])));
                      }
                   }
                   else {
-                    inp.variants.push_back(std::make_tuple(j-9, get_nuc_id('N')));
+                    inp.variants.emplace_back(std::make_tuple(j-9, get_nuc_id('N')));
                   }
               }
             }
@@ -214,7 +220,7 @@ int main(int argc, char** argv){
             mapper_graph2.wait_for_all();
 
             Node* best_node;
-            size_t best_level;
+            size_t best_level = 1e9;
             int best_set_difference = 1e9;
             size_t best_j = 0;
             for (size_t j=0; j< total_nodes; j++) {
@@ -234,94 +240,104 @@ int main(int argc, char** argv){
                     }
                 }
             }
-            fprintf(stderr, "Sample: %s, Best node: %s, Best set diff: %d\n", sample.c_str(), best_node->identifier.c_str(), best_set_difference);
-
-            if (best_node->is_leaf()) {
-                std::string nid = std::to_string(++T.curr_internal_node);
-                T.create_node(nid, nid, best_node->parent->identifier);
-                T.create_node(sample, sample, nid);
-                T.move_node(best_node->identifier, nid);
-                // TODO: modify node_mutations
-                std::vector<mutation> common_mut, l1_mut, l2_mut;
-                std::vector<mutation> curr_l1_mut;
-
-                if (node_mutations.find(best_node) != node_mutations.end()) {
-                    for (auto m1: node_mutations[best_node]) {
-                        mutation m;
-                        m.position = m1.position;
-                        m.ref_nuc = m1.ref_nuc;
-                        m.mut_nuc.push_back(m1.mut_nuc[0]);
-                        curr_l1_mut.push_back(m);
-                    }
-                    node_mutations.erase(best_node);
-                }
-
-                for (auto m1: curr_l1_mut) {
-                    bool found = false;
-                    for (auto m2: node_excess_mutations[best_j]) {
-                        if (m1.position == m2.position) {
-                            if (m1.mut_nuc[0] == m2.mut_nuc[0]) {
-                                found = true;
-                                mutation m;
-                                m.position = m1.position;
-                                m.ref_nuc = m1.ref_nuc;
-                                m.mut_nuc.push_back(m1.mut_nuc[0]);
-                                common_mut.push_back(m);
-                                break;
-                            }
-                        }
-                    }
-                    if (!found) {
-                        mutation m;
-                        m.position = m1.position;
-                        m.ref_nuc = m1.ref_nuc;
-                        m.mut_nuc.push_back(m1.mut_nuc[0]);
-                        l1_mut.push_back(m);
-                    }
-                }
-                for (auto m1: node_excess_mutations[best_j]) {
-                    bool found = false;
-                    for (auto m2: curr_l1_mut) {
-                        if (m1.position == m2.position) {
-                            if (m1.mut_nuc[0] == m2.mut_nuc[0]) {
-                                found = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (!found) {
-                        mutation m;
-                        m.position = m1.position;
-                        m.ref_nuc = m1.ref_nuc;
-                        m.mut_nuc.push_back(m1.mut_nuc[0]);
-                        l2_mut.push_back(m);
-                    }
-                }
-
-                if (common_mut.size() > 0) {
-                    node_mutations[T.get_node(nid)] = common_mut;
-                }
-                if (l1_mut.size() > 0) {
-                    node_mutations[T.get_node(best_node->identifier)] = l1_mut;
-                }
-                if (l2_mut.size() > 0) {
-                    node_mutations[T.get_node(sample)] = l2_mut;
-                }
+            fprintf(stderr, "Tree size: %zu, Sample: %s, Total mutations: %zu, Best node: %s, Best set diff: %d, ", total_nodes, sample.c_str(), \
+                    missing_sample_mutations[s].size(), best_node->identifier.c_str(), best_set_difference);
+            for (auto mut: node_excess_mutations[best_j]) {
+                fprintf(stderr, "%d:%d,", mut.position, mut.mut_nuc[0]); 
+//                for (auto nuc: mut.mut_nuc) {
+//                    fprintf(stderr, "%d", nuc);
+//                }
+//                fprintf(stderr, ",");
             }
-            else {
-                T.create_node(sample, sample, best_node->identifier);
-                Node* node = T.get_node(sample);
-                std::vector<mutation> node_mut;
-                for (auto mut: node_excess_mutations[best_j]) {
-                    mutation m;
-                    m.position = mut.position;
-                    m.ref_nuc = mut.ref_nuc;
-                    for (auto nuc: mut.mut_nuc) {
-                        m.mut_nuc.push_back(nuc);
+            fprintf(stderr, "\n");
+
+            if (T.get_node(sample) == NULL) {
+                if (best_node->is_leaf()) {
+                    std::string nid = std::to_string(++T.curr_internal_node);
+                    T.create_node(nid, nid, best_node->parent->identifier);
+                    T.create_node(sample, sample, nid);
+                    T.move_node(best_node->identifier, nid);
+                    std::vector<mutation> common_mut, l1_mut, l2_mut;
+                    std::vector<mutation> curr_l1_mut;
+
+                    if (node_mutations.find(best_node) != node_mutations.end()) {
+                        for (auto m1: node_mutations[best_node]) {
+                            mutation m;
+                            m.position = m1.position;
+                            m.ref_nuc = m1.ref_nuc;
+                            m.mut_nuc.emplace_back(m1.mut_nuc[0]);
+                            curr_l1_mut.emplace_back(m);
+                        }
+                        node_mutations.erase(best_node);
                     }
-                    node_mut.push_back(m);
+
+                    for (auto m1: curr_l1_mut) {
+                        bool found = false;
+                        for (auto m2: node_excess_mutations[best_j]) {
+                            if (m1.position == m2.position) {
+                                if (m1.mut_nuc[0] == m2.mut_nuc[0]) {
+                                    found = true;
+                                    mutation m;
+                                    m.position = m1.position;
+                                    m.ref_nuc = m1.ref_nuc;
+                                    m.mut_nuc.emplace_back(m1.mut_nuc[0]);
+                                    common_mut.emplace_back(m);
+                                    break;
+                                }
+                            }
+                        }
+                        if (!found) {
+                            mutation m;
+                            m.position = m1.position;
+                            m.ref_nuc = m1.ref_nuc;
+                            m.mut_nuc.emplace_back(m1.mut_nuc[0]);
+                            l1_mut.emplace_back(m);
+                        }
+                    }
+                    for (auto m1: node_excess_mutations[best_j]) {
+                        bool found = false;
+                        for (auto m2: curr_l1_mut) {
+                            if (m1.position == m2.position) {
+                                if (m1.mut_nuc[0] == m2.mut_nuc[0]) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!found) {
+                            mutation m;
+                            m.position = m1.position;
+                            m.ref_nuc = m1.ref_nuc;
+                            m.mut_nuc.emplace_back(m1.mut_nuc[0]);
+                            l2_mut.emplace_back(m);
+                        }
+                    }
+
+                    if (common_mut.size() > 0) {
+                        node_mutations[T.get_node(nid)] = common_mut;
+                    }
+                    if (l1_mut.size() > 0) {
+                        node_mutations[T.get_node(best_node->identifier)] = l1_mut;
+                    }
+                    if (l2_mut.size() > 0) {
+                        node_mutations[T.get_node(sample)] = l2_mut;
+                    }
                 }
-                node_mutations[node] = node_mut;
+                else {
+                    T.create_node(sample, sample, best_node->identifier);
+                    Node* node = T.get_node(sample);
+                    std::vector<mutation> node_mut;
+                    for (auto mut: node_excess_mutations[best_j]) {
+                        mutation m;
+                        m.position = mut.position;
+                        m.ref_nuc = mut.ref_nuc;
+                        for (auto nuc: mut.mut_nuc) {
+                            m.mut_nuc.emplace_back(nuc);
+                        }
+                        node_mut.emplace_back(m);
+                    }
+                    node_mutations[node] = node_mut;
+                }
             }
 
             free(node_set_difference);

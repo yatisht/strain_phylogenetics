@@ -4,6 +4,10 @@ std::mutex data_lock;
 
 int mapper_body::operator()(mapper_input input) {
     if (input.variant_pos >= 0) {
+        data_lock.lock();
+        fprintf(stderr, "%d\n", input.variant_pos);
+        data_lock.unlock();
+
         size_t num_nodes = input.bfs->size();
         std::vector<int8_t> states(num_nodes);
         std::vector<std::vector<int>> scores(num_nodes);
@@ -28,7 +32,9 @@ int mapper_body::operator()(mapper_input input) {
             size_t pos = std::get<0> (v);
             std::vector<int8_t> nucs = std::get<1> (v);
             std::string nid = (*input.variant_ids)[pos];
-            if ((*input.bfs_idx).find(nid) != (*input.bfs_idx).end()) {
+            auto iter = std::find(input.missing_samples->begin(), input.missing_samples->end(), nid);
+            if (iter == input.missing_samples->end()) {
+//            if ((*input.bfs_idx).find(nid) != (*input.bfs_idx).end()) {
                 size_t idx= (*input.bfs_idx)[nid];
                 for (int j=0; j<4; j++) {
                     scores[idx][j] = (int) num_nodes;
@@ -40,35 +46,18 @@ int mapper_body::operator()(mapper_input input) {
                 }
             }
             else {
-                size_t missing_idx = 0;
-                data_lock.lock();
-                for (missing_idx=0; missing_idx<input.missing_samples->size(); missing_idx++) {
-                    if ((*input.missing_samples)[missing_idx] == nid) {
-                        break;
-                    }
-                }
-                if (input.missing_samples->size() == missing_idx) {
-                    (*input.missing_samples).push_back(nid);
+                auto mutations_iter = input.missing_sample_mutations->begin() + (iter - input.missing_samples->begin());
+                if (nucs.size() < 4) {
+                    data_lock.lock();
                     mutation m;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
                     for (auto n: nucs) {
-                        m.mut_nuc.push_back(n);
+                        m.mut_nuc.emplace_back(n);
                     }
-                    std::vector<mutation> sample_mutations;
-                    sample_mutations.push_back(m);
-                    (*input.missing_sample_mutations).push_back(sample_mutations);
+                    (*mutations_iter).emplace_back(m);
+                    data_lock.unlock();
                 }
-                else {
-                    mutation m;
-                    m.position = input.variant_pos;
-                    m.ref_nuc = input.ref_nuc;
-                    for (auto n: nucs) {
-                        m.mut_nuc.push_back(n);
-                    }
-                    (*input.missing_sample_mutations)[missing_idx].push_back(m);
-                }
-                data_lock.unlock();
             }
         }
 
@@ -121,8 +110,10 @@ int mapper_body::operator()(mapper_input input) {
                     state = j;
                 }
             }
-            if (scores[node_idx][input.ref_nuc] == min_s) {
-                state = input.ref_nuc;
+            if (state != par_state) {
+                if (scores[node_idx][input.ref_nuc] == min_s) {
+                    state = input.ref_nuc;
+                }
             }
             states[node_idx] = state;
 
@@ -134,17 +125,23 @@ int mapper_body::operator()(mapper_input input) {
                     mutation m;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
-                    m.mut_nuc.push_back(state);
-                    (*input.node_mutations)[node].push_back(m);
+                    m.mut_nuc.emplace_back(state);
+
+                    data_lock.lock();
+                    (*input.node_mutations)[node].emplace_back(m);
+                    data_lock.unlock();
                 }
                 else {
                     mutation m;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
-                    m.mut_nuc.push_back(state);
+
+                    data_lock.lock();
+                    m.mut_nuc.emplace_back(state);
                     std::vector<mutation> node_mut;
-                    node_mut.push_back(m);
+                    node_mut.emplace_back(m);
                     (*input.node_mutations)[node] = node_mut;
+                    data_lock.unlock();
                 }
             }
         }
@@ -158,26 +155,67 @@ int mapper2_body::operator()(mapper2_input input) {
 
     *input.set_difference = 0;
 
+    std::vector<int> anc_positions;
     std::vector<mutation> ancestral_mutations;
-    for (auto n: input.T->rsearch(input.node->identifier)) {
-        if (input.node_mutations->find(n) != input.node_mutations->end()) {
-            for (auto m: (*input.node_mutations)[n]) {
-                ancestral_mutations.push_back(m);
+
+    size_t curr_node_num_mutations = 0;
+    
+    if (input.node->is_leaf()) {
+        for (auto m1: (*input.node_mutations)[input.node]) {
+            for (auto m2: (*input.missing_sample_mutations)) {
+                if (m1.position == m2.position) {
+                    auto anc_nuc = m1.mut_nuc[0];
+                    for (auto nuc: m2.mut_nuc) {
+                        if (nuc == anc_nuc) {
+                            mutation m;
+                            m.position = m1.position;
+                            m.ref_nuc = m1.ref_nuc;
+                            m.mut_nuc.emplace_back(anc_nuc);
+                            
+                            ancestral_mutations.emplace_back(m);
+                            anc_positions.emplace_back(m.position);
+                            (*input.excess_mutations).emplace_back(m);
+                        }
+                    }
+                }
             }
         }
     }
-    if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
-        for (auto m: (*input.node_mutations)[input.node]) {
-            ancestral_mutations.push_back(m);
+    else {
+        if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
+            for (auto m: (*input.node_mutations)[input.node]) {
+                ancestral_mutations.emplace_back(m);
+                anc_positions.emplace_back(m.position);
+                curr_node_num_mutations += 1;
+            }
         }
     }
 
+    for (auto n: input.T->rsearch(input.node->identifier)) {
+        if (input.node_mutations->find(n) != input.node_mutations->end()) {
+            for (auto m: (*input.node_mutations)[n]) {
+                auto begin_iter = (input.node->is_leaf()) ? anc_positions.begin()+curr_node_num_mutations : anc_positions.begin();
+                if (std::find(begin_iter, anc_positions.end(), m.position) == anc_positions.end()) {
+                    ancestral_mutations.emplace_back(m);
+                }
+            }
+        }
+    }
     for (auto m1: (*input.missing_sample_mutations)) {
+        bool found_pos = false;
         bool found = false;
         bool has_ref = false;
+        for (auto nuc: m1.mut_nuc) {
+            if (nuc == m1.ref_nuc) {
+                has_ref = true;
+            }
+        }
         for (auto m2: ancestral_mutations) {
+//        size_t start = (input.node->is_leaf()) ? curr_node_num_mutations : 0;
+//        for (size_t k=start; k<ancestral_mutations.size(); k++) {
+//            auto m2 = ancestral_mutations[k];
             if (m1.position == m2.position) {
-                assert(m2.mut_nuc.size() == 1);
+                found_pos = true;
                 auto anc_nuc = m2.mut_nuc[0];
                 for (auto nuc: m1.mut_nuc) {
                     if (nuc == anc_nuc) {
@@ -186,27 +224,24 @@ int mapper2_body::operator()(mapper2_input input) {
                 }
             }
         }
-        if (!found) {
+        if ((found_pos && !found) || (!found_pos && !has_ref)) {
             *input.set_difference += 1;
-            for (auto nuc: m1.mut_nuc) {
-                if (nuc == m1.ref_nuc) {
-                    has_ref = true;
-                }
-            }
             mutation m;
             m.position = m1.position;
             m.ref_nuc = m1.ref_nuc;
             if (has_ref) {
-                m.mut_nuc.push_back(m1.ref_nuc);
+                m.mut_nuc.emplace_back(m1.ref_nuc);
             }
             else {
-                m.mut_nuc.push_back(m1.mut_nuc[0]);
+                m.mut_nuc.emplace_back(m1.mut_nuc[0]);
             }
-            input.excess_mutations->push_back(m);
+            input.excess_mutations->emplace_back(m);
         }
     }
 
     for (auto m1: ancestral_mutations) {
+//    for (size_t k=0; k<ancestral_mutations.size(); k++) {
+//        auto m1 = ancestral_mutations[k];
         bool found = false;
         for (auto m2: (*input.missing_sample_mutations)) {
             if (m1.position == m2.position) {
@@ -219,12 +254,14 @@ int mapper2_body::operator()(mapper2_input input) {
             }
         }
         if (!found) {
-            *input.set_difference += 1;
+//            if (!input.node->is_leaf() || (k>=curr_node_num_mutations)) {
+                *input.set_difference += 1;
+//            }
             mutation m;
             m.position = m1.position;
             m.ref_nuc = m1.ref_nuc;
-            m.mut_nuc.push_back(m1.ref_nuc);
-            (*input.excess_mutations).push_back(m);
+            m.mut_nuc.emplace_back(m1.ref_nuc);
+            (*input.excess_mutations).emplace_back(m);
         }
     }
     
