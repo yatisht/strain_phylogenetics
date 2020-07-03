@@ -78,6 +78,10 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 
 ![Rot-tanglegrams](/images/tanglegrams_comparison.png)
 
+* Below is a GIF made from showing an animation of the tree rotation algorithm operating on much larger trees with the help of approximately 20 frames.
+
+![Rot-gif](/images/rotation.gif)
+
 ### Pairwise merging of trees 
 ```
     $ python tree_merge.py -T1 tree/pruned-sumtree-for-cog.nh -T2 tree/pruned-cog-for-sumtree.nh -symmetric 1 -T_out symm-merged-sumtree-cog.nh  
