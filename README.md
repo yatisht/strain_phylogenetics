@@ -78,7 +78,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 
 ![Rot-tanglegrams](/images/tanglegrams_comparison.png)
 
-* Below is a GIF made from showing an animation of the tree rotation algorithm operating on much larger trees with the help of approximately 20 frames.
+* Below is a GIF of approximately 20 frames made using the tree rotation algorithm operating on much a larger pair of trees (~4k leaves).
 
 ![Rot-gif](/images/rotation.gif)
 
