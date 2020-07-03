@@ -240,16 +240,13 @@ int main(int argc, char** argv){
                     }
                 }
             }
-            fprintf(stderr, "Tree size: %zu, Sample: %s, Total mutations: %zu, Best node: %s, Best set diff: %d, ", total_nodes, sample.c_str(), \
-                    missing_sample_mutations[s].size(), best_node->identifier.c_str(), best_set_difference);
-            for (auto mut: node_excess_mutations[best_j]) {
-                fprintf(stderr, "%d:%d,", mut.position, mut.mut_nuc[0]); 
-//                for (auto nuc: mut.mut_nuc) {
-//                    fprintf(stderr, "%d", nuc);
-//                }
-//                fprintf(stderr, ",");
-            }
-            fprintf(stderr, "\n");
+            fprintf(stderr, "Current tree size (#nodes): %zu\tMissing sample: %s\tParsimony score: %d\n", total_nodes, sample.c_str(), \
+                    best_set_difference);
+//                    missing_sample_mutations[s].size(), best_node->identifier.c_str(), best_set_difference);
+//            for (auto mut: node_excess_mutations[best_j]) {
+//                fprintf(stderr, "%d:%d,", mut.position, mut.mut_nuc[0]); 
+//            }
+//            fprintf(stderr, "\n");
 
             if (T.get_node(sample) == NULL) {
                 if (best_node->is_leaf()) {
