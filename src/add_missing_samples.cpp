@@ -191,7 +191,7 @@ int main(int argc, char** argv){
         mapper_graph.wait_for_all();
     }
     else if (din_filename != "") {
-        fprintf(stderr, "Loading existing assignments nad VCF file\n");
+        fprintf(stderr, "Loading existing assignments\n");
         
         Parsimony::data data;
 
@@ -224,6 +224,7 @@ int main(int argc, char** argv){
             }
         }
         
+        fprintf(stderr, "Loading VCF file\n");
         std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
         boost::iostreams::filtering_istream instream;
         try {
@@ -235,6 +236,7 @@ int main(int argc, char** argv){
         catch(const boost::iostreams::gzip_error& e) {
             std::cout << e.what() << '\n';
         }
+        std::vector<size_t> missing_idx;
         std::string s;
         while (instream.peek() != EOF) {
             std::getline(instream, s);
@@ -247,6 +249,7 @@ int main(int argc, char** argv){
                         if (bfs_idx.find(words[j]) == bfs_idx.end()) {
                             missing_samples.emplace_back(words[j]);
                             num_missing++;
+                            missing_idx.emplace_back(j-9);
                         }
                     }
                     missing_sample_mutations.resize(num_missing);
@@ -261,7 +264,7 @@ int main(int argc, char** argv){
                 std::vector<std::string> alleles;
                 alleles.clear();
                 split(words[4], ',', alleles);
-                for (size_t j=9; j < words.size(); j++) {
+                for (auto j: missing_idx) {
                     auto iter = std::find(missing_samples.begin(), missing_samples.end(), variant_ids[j-9]);
                     if (iter != missing_samples.end()) {
                         auto mutations_iter = missing_sample_mutations.begin() + (iter - missing_samples.begin());
