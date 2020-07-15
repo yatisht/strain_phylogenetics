@@ -249,7 +249,7 @@ int main(int argc, char** argv){
                         if (bfs_idx.find(words[j]) == bfs_idx.end()) {
                             missing_samples.emplace_back(words[j]);
                             num_missing++;
-                            missing_idx.emplace_back(j-9);
+                            missing_idx.emplace_back(j);
                         }
                     }
                     missing_sample_mutations.resize(num_missing);
