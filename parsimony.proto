@@ -1,0 +1,17 @@
+syntax = "proto3";                                                                                                                                                                                              
+package Parsimony;
+
+message mut {
+    int32 position = 1;
+    int32 ref_nuc = 2;
+    repeated int32 mut_nuc = 3;
+}
+
+message mutation_list {
+    repeated mut mutation = 1;
+}
+
+message data {
+    string newick = 1;
+    repeated mutation_list node_mutations = 2; 
+}

@@ -7,8 +7,9 @@
 #include <tbb/reader_writer_lock.h>
 #include <tbb/scalable_allocator.h>
 #include <tbb/task_scheduler_init.h>
-//#include "zlib.h"
 #include "ams_graph.hpp"
+//#include "../build/parsimony.pb.h"
+#include "parsimony.pb.h"
 
 namespace po = boost::program_options;
 
@@ -54,29 +55,31 @@ std::vector<int8_t> get_nuc_id (char c) {
 int main(int argc, char** argv){
 
     std::string tree_filename;
+    std::string din_filename;
+    std::string dout_filename;
     std::string vcf_filename;
     uint32_t num_cores = tbb::task_scheduler_init::default_num_threads();
     uint32_t num_threads;
-    bool print_vcf = false;
     po::options_description desc{"Options"};
     desc.add_options()
-        ("tree", po::value<std::string>(&tree_filename)->required(), "Input tree file")
         ("vcf", po::value<std::string>(&vcf_filename)->required(), "Input VCF file (in uncompressed or gzip-compressed format)")
+        ("tree", po::value<std::string>(&tree_filename)->default_value(""), "Input tree file")
+        ("load-assignments", po::value<std::string>(&din_filename)->default_value(""), "Load existing tree and parsimonious assignments")
+        ("save-assignments", po::value<std::string>(&dout_filename)->default_value(""), "Save output tree and parsimonious assignments")
         ("threads", po::value<uint32_t>(&num_threads)->default_value(num_cores), "Number of threads")
-        ("print-vcf", po::bool_switch(&print_vcf), "Print VCF with variants resolved instead of printing a parsimony file.")
         ("help", "Print help messages");
     
     po::options_description all_options;
     all_options.add(desc);
 
-    po::positional_options_description p;
-    p.add("tree", 1);
-    p.add("vcf", 1);
-    p.add("threads", 1);
+    //    po::positional_options_description p;
+    //    p.add("tree", 1);
+    //    p.add("vcf", 1);
+    //    p.add("threads", 1);
 
     po::variables_map vm;
     try{
-        po::store(po::command_line_parser(argc, argv).options(all_options).positional(p).run(), vm);
+        po::store(po::command_line_parser(argc, argv).options(all_options).run(), vm);
         po::notify(vm);
     }
     catch(std::exception &e){
@@ -84,27 +87,8 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    Tree T = create_tree_from_newick(tree_filename);
 
-    auto bfs = T.breadth_first_expansion();
-    std::unordered_map<std::string, size_t> bfs_idx;
-    for (size_t idx = 0; idx < bfs.size(); idx++) {
-        bfs_idx[bfs[idx]->identifier] = idx;
-    }
-
-    std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
-    boost::iostreams::filtering_istream instream;
-    try {
-        if (vcf_filename.find(".gz\0") != std::string::npos) {
-            instream.push(boost::iostreams::gzip_decompressor());
-        }
-        instream.push(infile);
-    }
-    catch(const boost::iostreams::gzip_error& e) {
-        std::cout << e.what() << '\n';
-    }
-    
-    fprintf(stderr, "Computing parsimonious assignments for input variants.\n"); 
+    Tree T;
 
     bool header_found = false;
     std::vector<std::string> variant_ids;
@@ -113,73 +97,203 @@ int main(int argc, char** argv){
     std::vector<std::vector<mutation>> missing_sample_mutations;
     size_t num_missing = 0;
 
-    tbb::task_scheduler_init init(num_threads);
-
-    tbb::flow::graph mapper_graph;
+    std::vector<Node*> bfs;
+    std::unordered_map<std::string, size_t> bfs_idx;
     
-    tbb::flow::function_node<mapper_input, int> mapper(mapper_graph, tbb::flow::unlimited, mapper_body());
-    tbb::flow::source_node <mapper_input> reader (mapper_graph,
-            [&] (mapper_input &inp) -> bool {
-            std::string s;
+    if (tree_filename != "") {
+        T = create_tree_from_newick(tree_filename);
+        bfs = T.breadth_first_expansion();
+
+        for (size_t idx = 0; idx < bfs.size(); idx++) {
+            bfs_idx[bfs[idx]->identifier] = idx;
+        }
+
+        std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
+        boost::iostreams::filtering_istream instream;
+        try {
+            if (vcf_filename.find(".gz\0") != std::string::npos) {
+                instream.push(boost::iostreams::gzip_decompressor());
+            }
+            instream.push(infile);
+        }
+        catch(const boost::iostreams::gzip_error& e) {
+            std::cout << e.what() << '\n';
+        }
+
+        fprintf(stderr, "Computing parsimonious assignments for input variants.\n"); 
+
+        tbb::task_scheduler_init init(num_threads);
+
+        tbb::flow::graph mapper_graph;
+
+        tbb::flow::function_node<mapper_input, int> mapper(mapper_graph, tbb::flow::unlimited, mapper_body());
+        tbb::flow::source_node <mapper_input> reader (mapper_graph,
+                [&] (mapper_input &inp) -> bool {
+                std::string s;
+                std::getline(instream, s);
+                std::vector<std::string> words;
+                split(s, words);
+                inp.variant_pos = -1;
+                if ((not header_found) && (words.size() > 1)) {
+                if (words[1] == "POS") {
+                for (size_t j=9; j < words.size(); j++) {
+                variant_ids.emplace_back(words[j]);
+                if (bfs_idx.find(words[j]) == bfs_idx.end()) {
+                missing_samples.emplace_back(words[j]);
+                num_missing++;
+                }
+                }
+                missing_sample_mutations.resize(num_missing);
+                header_found = true;
+                }
+                }
+                else if (header_found) {
+                    if (words.size() != 9+variant_ids.size()) {
+                        fprintf(stderr, "ERROR! Incorrect VCF format.\n");
+                        exit(1);
+                    }
+                    std::vector<std::string> alleles;
+                    alleles.clear();
+                    inp.variant_pos = std::stoi(words[1]); 
+                    split(words[4], ',', alleles);
+                    inp.T = &T;
+                    inp.bfs = &bfs;
+                    inp.bfs_idx = &bfs_idx;
+                    inp.variant_ids = &variant_ids;
+                    inp.missing_samples = &missing_samples;
+                    inp.node_mutations = &node_mutations;
+                    inp.missing_sample_mutations = &missing_sample_mutations;
+                    auto ref_nucs = get_nuc_id(words[3][0]);
+                    assert(ref_nucs.size() == 1);
+                    inp.ref_nuc = ref_nucs[0]; 
+                    inp.variants.clear();
+                    for (size_t j=9; j < words.size(); j++) {
+                        if (isdigit(words[j][0])) {
+                            int allele_id = std::stoi(words[j]);
+                            if (allele_id > 0) { 
+                                std::string allele = alleles[allele_id-1];
+                                inp.variants.emplace_back(std::make_tuple(j-9, get_nuc_id(allele[0])));
+                            }
+                        }
+                        else {
+                            inp.variants.emplace_back(std::make_tuple(j-9, get_nuc_id('N')));
+                        }
+                    }
+                }
+        //check if reached end-of-file
+        int curr_char = instream.peek();
+        if(curr_char == EOF)
+            return false;
+        else
+            return true;
+                }, true );
+        tbb::flow::make_edge(reader, mapper);
+        mapper_graph.wait_for_all();
+    }
+    else if (din_filename != "") {
+        fprintf(stderr, "Loading existing assignments nad VCF file\n");
+        
+        Parsimony::data data;
+
+        std::ifstream inpfile(din_filename, std::ios::in | std::ios::binary);
+        data.ParseFromIstream(&inpfile);
+        inpfile.close();
+
+        T = create_tree_from_newick_string(data.newick());
+
+        bfs.clear();
+        bfs = T.breadth_first_expansion();
+        
+        for (size_t idx = 0; idx < bfs.size(); idx++) {
+            bfs_idx[bfs[idx]->identifier] = idx;
+        }
+
+        for (size_t idx = 0; idx < bfs.size(); idx++) {
+            auto mutation_list = data.node_mutations(idx);
+            auto node = bfs[idx];
+            node_mutations.insert(std::pair<Node*, std::vector<mutation>>(node, std::vector<mutation>()));  
+            for (int k = 0; k < mutation_list.mutation_size(); k++) {
+                auto mut = mutation_list.mutation(k);
+                mutation m;
+                m.position = mut.position();
+                m.ref_nuc = mut.ref_nuc();
+                for (int n = 0; n < mut.mut_nuc_size(); n++) {
+                    m.mut_nuc.emplace_back(mut.mut_nuc(n));
+                }
+                node_mutations[node].emplace_back(m);
+            }
+        }
+        
+        std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
+        boost::iostreams::filtering_istream instream;
+        try {
+            if (vcf_filename.find(".gz\0") != std::string::npos) {
+                instream.push(boost::iostreams::gzip_decompressor());
+            }
+            instream.push(infile);
+        }
+        catch(const boost::iostreams::gzip_error& e) {
+            std::cout << e.what() << '\n';
+        }
+        std::string s;
+        while (instream.peek() != EOF) {
             std::getline(instream, s);
             std::vector<std::string> words;
             split(s, words);
-            inp.variant_pos = -1;
             if ((not header_found) && (words.size() > 1)) {
-              if (words[1] == "POS") {
-                  for (size_t j=9; j < words.size(); j++) {
-                    variant_ids.emplace_back(words[j]);
-                    if (bfs_idx.find(words[j]) == bfs_idx.end()) {
-                        missing_samples.emplace_back(words[j]);
-                        num_missing++;
+                if (words[1] == "POS") {
+                    for (size_t j=9; j < words.size(); j++) {
+                        variant_ids.emplace_back(words[j]);
+                        if (bfs_idx.find(words[j]) == bfs_idx.end()) {
+                            missing_samples.emplace_back(words[j]);
+                            num_missing++;
+                        }
                     }
-                  }
-                  missing_sample_mutations.resize(num_missing);
-                  header_found = true;
-              }
+                    missing_sample_mutations.resize(num_missing);
+                    header_found = true;
+                }
             }
             else if (header_found) {
-              if (words.size() != 9+variant_ids.size()) {
-                fprintf(stderr, "ERROR! Incorrect VCF format.\n");
-                exit(1);
-              }
-              std::vector<std::string> alleles;
-              alleles.clear();
-              inp.variant_pos = std::stoi(words[1]); 
-              split(words[4], ',', alleles);
-              inp.T = &T;
-              inp.bfs = &bfs;
-              inp.bfs_idx = &bfs_idx;
-              inp.variant_ids = &variant_ids;
-              inp.missing_samples = &missing_samples;
-              inp.node_mutations = &node_mutations;
-              inp.missing_sample_mutations = &missing_sample_mutations;
-              auto ref_nucs = get_nuc_id(words[3][0]);
-              assert(ref_nucs.size() == 1);
-              inp.ref_nuc = ref_nucs[0]; 
-              inp.variants.clear();
-              for (size_t j=9; j < words.size(); j++) {
-                  if (isdigit(words[j][0])) {
-                     int allele_id = std::stoi(words[j]);
-                     if (allele_id > 0) { 
-                        std::string allele = alleles[allele_id-1];
-                        inp.variants.emplace_back(std::make_tuple(j-9, get_nuc_id(allele[0])));
-                     }
-                  }
-                  else {
-                    inp.variants.emplace_back(std::make_tuple(j-9, get_nuc_id('N')));
-                  }
-              }
+                if (words.size() != 9+variant_ids.size()) {
+                    fprintf(stderr, "ERROR! Incorrect VCF format.\n");
+                    exit(1);
+                }
+                std::vector<std::string> alleles;
+                alleles.clear();
+                split(words[4], ',', alleles);
+                for (size_t j=9; j < words.size(); j++) {
+                    auto iter = std::find(missing_samples.begin(), missing_samples.end(), variant_ids[j-9]);
+                    if (iter != missing_samples.end()) {
+                        auto mutations_iter = missing_sample_mutations.begin() + (iter - missing_samples.begin());
+                        mutation m;
+                        m.position = std::stoi(words[1]);
+                        auto ref_nucs = get_nuc_id(words[3][0]);
+                        assert(ref_nucs.size() == 1);
+                        m.ref_nuc = ref_nucs[0];
+                        if (isdigit(words[j][0])) {
+                            int allele_id = std::stoi(words[j]);
+                            if (allele_id > 0) { 
+                                std::string allele = alleles[allele_id-1];
+                                for (auto n: get_nuc_id(allele[0])) {
+                                    m.mut_nuc.emplace_back(n);
+                                }
+                                (*mutations_iter).emplace_back(m);
+                            }
+                        }
+//                        else {
+//                            for (auto n: get_nuc_id('N')) {
+//                                m.mut_nuc.emplace_back(n);
+//                            }
+//                        }
+                    }
+                }
             }
-            //check if reached end-of-file
-            int curr_char = instream.peek();
-            if(curr_char == EOF)
-              return false;
-            else
-              return true;
-      }, true );
-    tbb::flow::make_edge(reader, mapper);
-    mapper_graph.wait_for_all();
+        }
+    }
+    else {
+        fprintf(stderr, "Error! No input tree or assignment file provided!\n");
+        exit(1);
+    }
 
     fprintf(stderr, "Computing parsimonious assignments done.\nFound %zu missing samples.\n", missing_samples.size()); 
 
@@ -345,6 +459,36 @@ int main(int argc, char** argv){
     fprintf(stderr, "Displaying final tree: \n");
     fprintf(stdout, "%s\n", get_newick_string(T, false).c_str());
 
+    if (dout_filename != "") {
+        fprintf(stderr, "Saving assignments. \n");
+
+        Parsimony::data data;
+        data.set_newick(get_newick_string(T, false));
+
+        bfs.clear();
+        bfs = T.breadth_first_expansion();
+
+        for (size_t idx = 0; idx < bfs.size(); idx++) {
+            auto mutation_list = data.add_node_mutations();
+            auto mutations = node_mutations[bfs[idx]];
+            for (auto m: mutations) {
+                auto mut = mutation_list->add_mutation();
+                mut->set_position(m.position);
+                mut->set_ref_nuc(m.ref_nuc);
+                mut->clear_mut_nuc();
+                for (auto nuc: m.mut_nuc) {
+                    mut->add_mut_nuc(nuc);
+                }
+            }
+        }
+
+        std::ofstream outfile(dout_filename, std::ios::out | std::ios::binary);
+        data.SerializeToOstream(&outfile);
+        outfile.close();
+    }
+    
+    google::protobuf::ShutdownProtobufLibrary();
+    
     return 0;
 }
 

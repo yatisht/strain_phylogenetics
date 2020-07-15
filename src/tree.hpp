@@ -55,6 +55,7 @@ class Tree {
 
 std::string get_newick_string(Tree T, bool b);
 Tree create_tree_from_newick (std::string filename);
+Tree create_tree_from_newick_string (std::string newick_string);
 void split(std::string s, char delim, std::vector<std::string>& words);
 void split(std::string s, std::vector<std::string>& words);
 

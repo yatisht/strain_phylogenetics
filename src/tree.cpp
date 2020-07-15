@@ -411,3 +411,69 @@ Tree create_tree_from_newick (std::string filename) {
     return T;
 }
 
+Tree create_tree_from_newick_string (std::string newick_string) {
+    Tree T;
+
+    std::vector<std::string> leaves;
+    std::vector<size_t> num_open;
+    std::vector<size_t> num_close;
+
+    std::vector<std::string> s1;
+    split(newick_string, ',', s1);
+
+    for (auto s: s1) {
+        size_t no = 0;
+        size_t nc = 0;
+        bool stop = false;
+        std::string leaf = "";
+        for (auto c: s) {
+            if (c == ':') {
+                stop = true;
+            }
+            else if (c == '(') {
+                no++;
+            }
+            else if (c == ')') {
+                stop = true;
+                nc++;
+            }
+            else if (!stop) {
+                leaf += c;
+            }
+        }
+        leaves.push_back(leaf);
+        num_open.push_back(no);
+        num_close.push_back(nc);
+    }
+
+    if (num_open.size() != num_close.size()) {
+        fprintf(stderr, "ERROR: incorrect Newick format!\n");
+        exit(1);
+    }
+
+    T.curr_internal_node = 0;
+    std::stack<std::string> parent_stack;
+
+    for (size_t i=0; i<leaves.size(); i++) {
+        auto leaf = leaves[i];
+        auto no = num_open[i];
+        auto nc = num_close[i];
+        for (size_t j=0; j<no; j++) {
+            std::string nid = std::to_string(++T.curr_internal_node);
+            if (parent_stack.size() == 0) {
+                T.create_node(nid, nid);
+            }
+            else {
+                T.create_node(nid, nid, parent_stack.top());
+            }
+            parent_stack.push(nid);
+        }
+        T.create_node(leaf, leaf, parent_stack.top());
+        for (size_t j=0; j<nc; j++) {
+            parent_stack.pop();
+        }
+    }
+
+    return T;
+}
+
