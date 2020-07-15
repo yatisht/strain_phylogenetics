@@ -11,7 +11,7 @@
     $ git checkout dev-c++
     $ wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protobuf-cpp-3.12.3.tar.gz
     $ tar -xvzf protobuf-cpp-3.12.3.tar.gz 
-    $ cd protobuf-cpp-3.12.3
+    $ cd protobuf-3.12.3
     $ ./configure --prefix=${PWD}/install
     $ make -j
     $ make install

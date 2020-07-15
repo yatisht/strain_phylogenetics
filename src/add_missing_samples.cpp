@@ -258,7 +258,7 @@ int main(int argc, char** argv){
             }
             else if (header_found) {
                 if (words.size() != 9+variant_ids.size()) {
-                    fprintf(stderr, "ERROR! Incorrect VCF format.\n");
+                    fprintf(stderr, "ERROR! Incorrect VCF format. Expected %zu columns but got %zu.\n", 9+variant_ids.size(), words.size());
                     exit(1);
                 }
                 std::vector<std::string> alleles;
