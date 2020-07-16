@@ -153,8 +153,10 @@ int mapper_body::operator()(mapper_input input) {
 }
 
 int mapper2_body::operator()(mapper2_input input) {
+    
+    int set_difference = 0;
+    int best_set_difference = *input.best_set_difference;
 
-    *input.set_difference = 0;
 
     std::vector<int> anc_positions;
     std::vector<mutation> ancestral_mutations;
@@ -222,7 +224,10 @@ int mapper2_body::operator()(mapper2_input input) {
             }
         }
         if (!(found || (!found_pos && has_ref))) {
-            *input.set_difference += 1;
+            set_difference += 1;
+            if (set_difference > best_set_difference) {
+                return 1;
+            }
             mutation m;
             m.position = m1.position;
             m.ref_nuc = m1.ref_nuc;
@@ -249,7 +254,10 @@ int mapper2_body::operator()(mapper2_input input) {
             }
         }
         if (!found && (anc_nuc != m1.ref_nuc)) {
-            *input.set_difference += 1;
+            set_difference += 1;
+            if (set_difference > best_set_difference) {
+                return 1;
+            }
             mutation m;
             m.position = m1.position;
             m.ref_nuc = m1.ref_nuc;
@@ -257,28 +265,26 @@ int mapper2_body::operator()(mapper2_input input) {
             (*input.excess_mutations).emplace_back(m);
         }
     }
-    
-//    if (input.node->is_leaf()) {
-//        data_lock.lock();
-//        fprintf(stderr, "%s %s: ", input.node->identifier.c_str(), input.missing_sample.c_str());
-////        for (auto m: (*input.excess_mutations)) {
-////            fprintf(stderr, "%d:%d ", m.position, m.mut_nuc[0]);
-////        }
-//        fprintf(stderr, "\n");
-//        for (auto m: ancestral_mutations) {
-//            fprintf(stderr, "%d:%d ", m.position, m.mut_nuc[0]);
-//        }
-//        fprintf(stderr, "\n");
-//        for (auto m: (*input.missing_sample_mutations)) {
-//            fprintf(stderr, "%d:", m.position);
-//            for (auto nuc: m.mut_nuc) {
-//                fprintf(stderr, "%d,", nuc);
-//            }
-//            fprintf(stderr, "%d,", m.ref_nuc);
-//        }
-//        fprintf(stderr, "\n%d\n", *input.set_difference);
-//        data_lock.unlock();
-//    }
+
+    data_lock.lock();
+
+    if (set_difference < *input.best_set_difference) {
+        *input.best_set_difference = set_difference;
+        *input.best_node = input.node;
+        *input.best_level = input.node->level;
+        *input.best_j = input.j;
+    }
+    else if (set_difference == *input.best_set_difference) {
+        if (input.node->level < *input.best_level) {
+            *input.best_set_difference = set_difference;
+            *input.best_node = input.node;
+            *input.best_level = input.node->level;
+            *input.best_j = input.j;
+        }
+    }
+
+    data_lock.unlock();
+
     return 1;
 }
 

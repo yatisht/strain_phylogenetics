@@ -4,21 +4,15 @@ cmake_minimum_required (VERSION 3.8)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -Wall -g")
 set(CMAKE_INCLUDE_CURRENT_DIR ON) 
 
-#find_package(Protobuf REQUIRED HINTS /public/home/yatisht/strain_phylogenetics/protobuf-3.12.3/cmake/build/lib64/cmake/protobuf)
-#find_package(Protobuf REQUIRED) 
 find_package(Protobuf REQUIRED HINTS ${Protobuf_PATH}) 
 
 # Print version messages
 if(Protobuf_FOUND)
     message(STATUS "Using Protocol Buffers ${Protobuf_VERSION}")
-    #message(STATUS "Inc dir ${Protobuf_INCLUDE_DIRS}")
-    #message("Protobuf_LIBRARIES: " ${Protobuf_LIBRARIES})
-    #message(STATUS "Compiler ${PROTOBUF_PROTOC_EXECUTABLE}")
 endif()
 
 
 include_directories(${Protobuf_INCLUDE_DIRS})
-#protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS addressbook.proto)
 
 include(${TBB_ROOT}/cmake/TBBBuild.cmake)
 tbb_build(TBB_ROOT ${TBB_ROOT} CONFIG_DIR TBB_DIR MAKE_ARGS tbb_cpf=1)

@@ -13,6 +13,7 @@
 
 namespace po = boost::program_options;
 
+
 std::vector<int8_t> get_nuc_id (char c) {
     switch (c) {
         case 'a':
@@ -283,11 +284,6 @@ int main(int argc, char** argv){
                                 (*mutations_iter).emplace_back(m);
                             }
                         }
-//                        else {
-//                            for (auto n: get_nuc_id('N')) {
-//                                m.mut_nuc.emplace_back(n);
-//                            }
-//                        }
                     }
                 }
             }
@@ -298,21 +294,28 @@ int main(int argc, char** argv){
         exit(1);
     }
 
-    fprintf(stderr, "Computing parsimonious assignments done.\nFound %zu missing samples.\n", missing_samples.size()); 
+    fprintf(stderr, "Found %zu missing samples.\n", missing_samples.size()); 
+
+    // Timer timer;
 
     if (missing_samples.size() > 0) {
         fprintf(stderr, "Adding missing samples to the tree.\n");  
         
         for (size_t s=0; s<missing_samples.size(); s++) {
+            // timer.start();
             auto sample = missing_samples[s];
 
-            size_t curr = 0;
             auto dfs = T.depth_first_expansion();
             size_t total_nodes = dfs.size();
+            size_t curr = 0;
                         
             std::vector<std::vector<mutation>> node_excess_mutations(total_nodes);
-            int* node_set_difference = (int*) calloc(total_nodes, sizeof(int));
 
+            size_t best_level = 1e9;
+            int best_set_difference = 1e9;
+            size_t best_j = 0;
+            Node* best_node = NULL;
+            
             tbb::flow::graph mapper_graph2;
 
             tbb::flow::function_node<mapper2_input, int> mapper2(mapper_graph2, tbb::flow::unlimited, mapper2_body());
@@ -325,7 +328,11 @@ int main(int argc, char** argv){
                     inp.node_mutations = &node_mutations;
                     inp.missing_sample_mutations = &missing_sample_mutations[s];
                     inp.excess_mutations = &node_excess_mutations[curr-1];
-                    inp.set_difference = &node_set_difference[curr-1];
+                    inp.best_level = &best_level;
+                    inp.best_set_difference = &best_set_difference;
+                    inp.best_node = &best_node;
+                    inp.best_j =  &best_j;
+                    inp.j = curr-1;
                     if (curr <= total_nodes) {
                         return true;
                     }
@@ -333,37 +340,12 @@ int main(int argc, char** argv){
                         return false;
                     }
                     }, true );
+
             tbb::flow::make_edge(splitter, mapper2);
             mapper_graph2.wait_for_all();
-
-            Node* best_node;
-            size_t best_level = 1e9;
-            int best_set_difference = 1e9;
-            size_t best_j = 0;
-            for (size_t j=0; j< total_nodes; j++) {
-                auto n = dfs[j];
-                if (node_set_difference[j] < best_set_difference) {
-                    best_set_difference = node_set_difference[j];
-                    best_node = n;
-                    best_level = n->level;
-                    best_j = j;
-                }
-                else if (node_set_difference[j] == best_set_difference) {
-                    if (n->level < best_level) {
-                        best_set_difference = node_set_difference[j];
-                        best_node = n;
-                        best_level = n->level;
-                        best_j = j;
-                    }
-                }
-            }
+            
             fprintf(stderr, "Current tree size (#nodes): %zu\tMissing sample: %s\tParsimony score: %d\n", total_nodes, sample.c_str(), \
                     best_set_difference);
-//                    missing_sample_mutations[s].size(), best_node->identifier.c_str(), best_set_difference);
-//            for (auto mut: node_excess_mutations[best_j]) {
-//                fprintf(stderr, "%d:%d,", mut.position, mut.mut_nuc[0]); 
-//            }
-//            fprintf(stderr, "\n");
 
             if (T.get_node(sample) == NULL) {
                 if (best_node->is_leaf()) {
@@ -454,7 +436,7 @@ int main(int argc, char** argv){
                 }
             }
 
-            free(node_set_difference);
+            // fprintf(stderr, "Completed in %ld msec \n", timer.stop());
         }
 
     }

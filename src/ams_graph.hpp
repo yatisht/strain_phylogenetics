@@ -1,8 +1,27 @@
 #include "tree.hpp"
 #include <set>
 #include <mutex>
+#include <sys/time.h>
 
 extern std::mutex data_lock;
+
+class Timer {
+    private:
+        struct timeval start_time, end_time;
+    public:
+        void start() {
+            gettimeofday(&start_time, NULL);
+        }
+        long stop() {
+            long useconds, seconds, mseconds;
+            gettimeofday(&end_time, NULL);
+            useconds = end_time.tv_usec - start_time.tv_usec;
+            seconds = end_time.tv_sec - start_time.tv_sec;
+            mseconds = ((seconds) * 1000 + useconds/1000.0 + 0.5);
+            return mseconds;
+        }
+        
+};
 
 struct mutation {
     int position;
@@ -35,7 +54,12 @@ struct mapper2_input {
     std::unordered_map<Node*, std::vector<mutation>>* node_mutations;
     std::vector<mutation>* missing_sample_mutations;
     
-    int* set_difference;
+    int* best_set_difference;
+    size_t* best_level;
+    size_t j;
+    size_t* best_j;
+    Node** best_node;
+
     std::vector<mutation>* excess_mutations;
 };
 
