@@ -1,8 +1,7 @@
 
 ### Install prerequisites 
 ```
-    $ sudo apt-get install libboost-all-dev
-    $ sudo apt-get install cmake
+    $ sudo apt-get install libboost-all-dev cmake libomp-dev
 ```
 ### Install protobuf and build code  
 ```

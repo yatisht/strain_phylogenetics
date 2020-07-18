@@ -2,6 +2,13 @@
 #include <set>
 #include <mutex>
 #include <sys/time.h>
+#include "Instrumentor.h"
+
+#if SAVE_PROFILE == 1
+#  define TIMEIT() InstrumentationTimer timer##__LINE__(__PRETTY_FUNCTION__);
+#else
+#  define TIMEIT()
+#endif
 
 extern std::mutex data_lock;
 
@@ -63,7 +70,8 @@ struct mapper2_input {
     std::vector<mutation>* excess_mutations;
 };
 
-struct mapper2_body {
-    int operator()(mapper2_input input);
-};
+//struct mapper2_body {
+//    int operator()(mapper2_input input);
+//};
 
+int mapper2_body(mapper2_input& inp);

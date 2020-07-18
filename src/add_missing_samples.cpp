@@ -8,7 +8,7 @@
 #include <tbb/scalable_allocator.h>
 #include <tbb/task_scheduler_init.h>
 #include "ams_graph.hpp"
-//#include "../build/parsimony.pb.h"
+#include <omp.h>
 #include "parsimony.pb.h"
 
 namespace po = boost::program_options;
@@ -88,6 +88,10 @@ int main(int argc, char** argv){
         return 1;
     }
 
+
+#if SAVE_PROFILE == 1
+    Instrumentor::Get().BeginSession("test-main", "p1.json");
+#endif
 
     Tree T;
 
@@ -307,7 +311,6 @@ int main(int argc, char** argv){
 
             auto dfs = T.depth_first_expansion();
             size_t total_nodes = dfs.size();
-            size_t curr = 0;
                         
             std::vector<std::vector<mutation>> node_excess_mutations(total_nodes);
 
@@ -315,34 +318,57 @@ int main(int argc, char** argv){
             int best_set_difference = 1e9;
             size_t best_j = 0;
             Node* best_node = NULL;
+
+            omp_set_num_threads(num_threads);
+
+#pragma omp parallel for
+            for (size_t k = 0; k < total_nodes; k++) {
+                mapper2_input inp;
+                inp.T = &T;
+                inp.node = dfs[k];
+                inp.node_mutations = &node_mutations;
+                inp.missing_sample_mutations = &missing_sample_mutations[s];
+                inp.excess_mutations = &node_excess_mutations[k];
+                inp.best_level = &best_level;
+                inp.best_set_difference = &best_set_difference;
+                inp.best_node = &best_node;
+                inp.best_j =  &best_j;
+                inp.j = k;
+
+                mapper2_body(inp);
+            }
             
-            tbb::flow::graph mapper_graph2;
-
-            tbb::flow::function_node<mapper2_input, int> mapper2(mapper_graph2, tbb::flow::unlimited, mapper2_body());
-            tbb::flow::source_node <mapper2_input> splitter (mapper_graph2,
-                    [&] (mapper2_input &inp) -> bool {
-                    curr += 1;
-                    inp.missing_sample = sample;
-                    inp.T = &T;
-                    inp.node = dfs[curr-1];
-                    inp.node_mutations = &node_mutations;
-                    inp.missing_sample_mutations = &missing_sample_mutations[s];
-                    inp.excess_mutations = &node_excess_mutations[curr-1];
-                    inp.best_level = &best_level;
-                    inp.best_set_difference = &best_set_difference;
-                    inp.best_node = &best_node;
-                    inp.best_j =  &best_j;
-                    inp.j = curr-1;
-                    if (curr <= total_nodes) {
-                        return true;
-                    }
-                    else {
-                        return false;
-                    }
-                    }, true );
-
-            tbb::flow::make_edge(splitter, mapper2);
-            mapper_graph2.wait_for_all();
+            //            size_t curr = 0;
+            //
+            //            tbb::flow::graph mapper_graph2;
+            //
+            //            tbb::flow::function_node<mapper2_input, int> mapper2(mapper_graph2, tbb::flow::unlimited, mapper2_body());
+            //            tbb::flow::source_node <mapper2_input> splitter (mapper_graph2,
+            //                    [&] (mapper2_input &inp) -> bool {
+            //                    TIMEIT();
+            //                    curr += 1;
+            //                    inp.missing_sample = sample;
+            //                    inp.T = &T;
+            //                    inp.node = dfs[curr-1];
+            //                    inp.node_mutations = &node_mutations;
+            //                    inp.missing_sample_mutations = &missing_sample_mutations[s];
+            //                    inp.excess_mutations = &node_excess_mutations[curr-1];
+            //                    inp.best_level = &best_level;
+            //                    inp.best_set_difference = &best_set_difference;
+            //                    inp.best_node = &best_node;
+            //                    inp.best_j =  &best_j;
+            //                    inp.j = curr-1;
+            //                    if (curr <= total_nodes) {
+            //                        return true;
+            //                    }
+            //                    else {
+            //                        return false;
+            //                    }
+            //                    }, true );
+            //
+            //            tbb::flow::make_edge(splitter, mapper2);
+            //            mapper_graph2.wait_for_all();
+            
             
             fprintf(stderr, "Current tree size (#nodes): %zu\tMissing sample: %s\tParsimony score: %d\n", total_nodes, sample.c_str(), \
                     best_set_difference);
@@ -474,6 +500,11 @@ int main(int argc, char** argv){
     
     google::protobuf::ShutdownProtobufLibrary();
     
+
+#if SAVE_PROFILE == 1
+    Instrumentor::Get().EndSession();
+#endif
+
     return 0;
 }
 

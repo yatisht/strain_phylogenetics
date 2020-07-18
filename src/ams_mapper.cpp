@@ -3,6 +3,8 @@
 std::mutex data_lock;
 
 int mapper_body::operator()(mapper_input input) {
+    TIMEIT();
+    
     if (input.variant_pos >= 0) {
         /*
         data_lock.lock();
@@ -152,7 +154,9 @@ int mapper_body::operator()(mapper_input input) {
     return 1;
 }
 
-int mapper2_body::operator()(mapper2_input input) {
+//int mapper2_body::operator()(mapper2_input input) {
+int mapper2_body(mapper2_input& input) {
+//    TIMEIT();
     
     int set_difference = 0;
     int best_set_difference = *input.best_set_difference;

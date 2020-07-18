@@ -22,6 +22,8 @@ FIND_PACKAGE(Boost COMPONENTS program_options iostreams REQUIRED)
 
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
+find_package(OpenMP REQUIRED)
+
 add_executable(find_parsimonious_assignments
     src/tree.cpp
     src/fpa_mapper.cpp
@@ -43,7 +45,11 @@ protobuf_generate(
 TARGET_COMPILE_OPTIONS(find_parsimonious_assignments PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
 TARGET_LINK_LIBRARIES(find_parsimonious_assignments PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS})
 
-TARGET_COMPILE_OPTIONS(add_missing_samples PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
-TARGET_LINK_LIBRARIES(add_missing_samples PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS} ${Protobuf_LIBRARIES})
-#TARGET_LINK_LIBRARIES(add_missing_samples PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS} ${PROTOBUF_LIBRARY})
-#TARGET_LINK_LIBRARIES(add_missing_samples PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS})
+if(SAVE_PROFILE)
+    TARGET_COMPILE_OPTIONS(add_missing_samples PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES -DSAVE_PROFILE=1)
+else(SAVE_PROFILE)
+    TARGET_COMPILE_OPTIONS(add_missing_samples PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
+endif(SAVE_PROFILE)
+
+TARGET_LINK_LIBRARIES(add_missing_samples PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS} ${Protobuf_LIBRARIES} OpenMP::OpenMP_CXX)
+
