@@ -61,6 +61,7 @@ int main(int argc, char** argv){
     std::string vcf_filename;
     uint32_t num_cores = tbb::task_scheduler_init::default_num_threads();
     uint32_t num_threads;
+    bool collapse_tree=false;
     po::options_description desc{"Options"};
     desc.add_options()
         ("vcf", po::value<std::string>(&vcf_filename)->required(), "Input VCF file (in uncompressed or gzip-compressed format)")
@@ -68,6 +69,7 @@ int main(int argc, char** argv){
         ("load-assignments", po::value<std::string>(&din_filename)->default_value(""), "Load existing tree and parsimonious assignments")
         ("save-assignments", po::value<std::string>(&dout_filename)->default_value(""), "Save output tree and parsimonious assignments")
         ("threads", po::value<uint32_t>(&num_threads)->default_value(num_cores), "Number of threads")
+        ("collapse-final-tree", po::bool_switch(&collapse_tree), "Collapse internal nodes of the output tree with no mutations.")
         ("help", "Print help messages");
     
     po::options_description all_options;
@@ -306,7 +308,7 @@ int main(int argc, char** argv){
         fprintf(stderr, "Adding missing samples to the tree.\n");  
         
         for (size_t s=0; s<missing_samples.size(); s++) {
-            // timer.start();
+            // timerSStart();
             auto sample = missing_samples[s];
 
             auto dfs = T.depth_first_expansion();
@@ -462,9 +464,27 @@ int main(int argc, char** argv){
                 }
             }
 
-            // fprintf(stderr, "Completed in %ld msec \n", timer.stop());
+            // fprintf(stderr, "Completed in %ld msec \n", timer.Stop());
         }
 
+    }
+
+    if (collapse_tree || (dout_filename != "")) {
+        bfs.clear();
+        bfs = T.breadth_first_expansion();
+    }
+
+    if (collapse_tree) {
+        for (size_t idx = 1; idx < bfs.size(); idx++) {
+            auto mutations = node_mutations[bfs[idx]];
+            if (mutations.size() == 0) {
+                auto node = bfs[idx];
+                auto parent = node->parent;
+                for (auto child: node->children) {
+                    T.move_node(child->identifier, parent->identifier);
+                }
+            }
+        }
     }
 
     fprintf(stderr, "Displaying final tree: \n");
@@ -475,9 +495,6 @@ int main(int argc, char** argv){
 
         Parsimony::data data;
         data.set_newick(get_newick_string(T, false));
-
-        bfs.clear();
-        bfs = T.breadth_first_expansion();
 
         for (size_t idx = 0; idx < bfs.size(); idx++) {
             auto mutation_list = data.add_node_mutations();

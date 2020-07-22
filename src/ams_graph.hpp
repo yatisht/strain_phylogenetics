@@ -14,16 +14,16 @@ extern std::mutex data_lock;
 
 class Timer {
     private:
-        struct timeval start_time, end_time;
+        struct timeval m_StartTime, m_EndTime;
     public:
-        void start() {
-            gettimeofday(&start_time, NULL);
+        void Start() {
+            gettimeofday(&m_StartTime, NULL);
         }
-        long stop() {
+        long Stop() {
             long useconds, seconds, mseconds;
-            gettimeofday(&end_time, NULL);
-            useconds = end_time.tv_usec - start_time.tv_usec;
-            seconds = end_time.tv_sec - start_time.tv_sec;
+            gettimeofday(&m_EndTime, NULL);
+            useconds = m_EndTime.tv_usec - m_StartTime.tv_usec;
+            seconds = m_EndTime.tv_sec - m_StartTime.tv_sec;
             mseconds = ((seconds) * 1000 + useconds/1000.0 + 0.5);
             return mseconds;
         }
