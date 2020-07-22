@@ -229,17 +229,24 @@ std::vector<Node*> Tree::depth_first_expansion() {
     return traversal;
 }
 
-std::string get_newick_string (Tree T, bool print_internal) {
+std::vector<Node*> Tree::depth_first_expansion(Node* node) {
+    std::vector<Node*> traversal;
+    depth_first_expansion_helper(node, traversal);
+    return traversal;
+}
+
+std::string get_newick_string (Tree T, Node* node, bool print_internal) {
     std::string newick_string = "";
 
-    std::vector<Node*> traversal = T.depth_first_expansion();
+    std::vector<Node*> traversal = T.depth_first_expansion(node);
+    size_t level_offset = node->level-1;
     size_t curr_level = 0;
     bool prev_open = true;
 
     std::stack<std::string> node_stack;
 
     for (auto n: traversal) {
-        size_t level = n->level;
+        size_t level = n->level-level_offset;
         if (curr_level < level) {
             if (!prev_open) {
                 newick_string += ",";
@@ -287,7 +294,8 @@ std::string get_newick_string (Tree T, bool print_internal) {
         }
         curr_level = level;
     }
-    for (size_t i = 1; i < curr_level; i++) {
+    size_t remaining = node_stack.size();
+    for (size_t i = 0; i < remaining; i++) {
         newick_string += ")";
         if (print_internal) {
             newick_string += node_stack.top();
@@ -297,6 +305,10 @@ std::string get_newick_string (Tree T, bool print_internal) {
 
     newick_string += ";";
     return newick_string;
+}
+
+std::string get_newick_string (Tree T, bool print_internal) {
+    return get_newick_string(T, T.root, print_internal);
 }
 
 void split (std::string s, char delim, std::vector<std::string>& words) {

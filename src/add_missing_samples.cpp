@@ -13,7 +13,6 @@
 
 namespace po = boost::program_options;
 
-
 std::vector<int8_t> get_nuc_id (char c) {
     switch (c) {
         case 'a':
@@ -62,6 +61,7 @@ int main(int argc, char** argv){
     uint32_t num_cores = tbb::task_scheduler_init::default_num_threads();
     uint32_t num_threads;
     bool collapse_tree=false;
+    size_t print_subtrees_threshold=0;
     po::options_description desc{"Options"};
     desc.add_options()
         ("vcf", po::value<std::string>(&vcf_filename)->required(), "Input VCF file (in uncompressed or gzip-compressed format)")
@@ -70,6 +70,8 @@ int main(int argc, char** argv){
         ("save-assignments", po::value<std::string>(&dout_filename)->default_value(""), "Save output tree and parsimonious assignments")
         ("threads", po::value<uint32_t>(&num_threads)->default_value(num_cores), "Number of threads")
         ("collapse-final-tree", po::bool_switch(&collapse_tree), "Collapse internal nodes of the output tree with no mutations.")
+        ("print-subtrees-threshold", po::value<size_t>(&print_subtrees_threshold)->default_value(0), \
+         "Print minimum set of subtrees of size equal of larger than this value covering the missing samples.")
         ("help", "Print help messages");
     
     po::options_description all_options;
@@ -469,12 +471,12 @@ int main(int argc, char** argv){
 
     }
 
-    if (collapse_tree || (dout_filename != "")) {
+    if (collapse_tree) {
+        fprintf(stderr, "Collapsing final tree. \n");
+
         bfs.clear();
         bfs = T.breadth_first_expansion();
-    }
-
-    if (collapse_tree) {
+        
         for (size_t idx = 1; idx < bfs.size(); idx++) {
             auto mutations = node_mutations[bfs[idx]];
             if (mutations.size() == 0) {
@@ -487,14 +489,45 @@ int main(int argc, char** argv){
         }
     }
 
-    fprintf(stderr, "Displaying final tree: \n");
+    fprintf(stderr, "Printing final tree. \n");
     fprintf(stdout, "%s\n", get_newick_string(T, false).c_str());
+
+    if (print_subtrees_threshold > 0) {
+        fprintf(stderr, "Printing subtrees for display. \n");
+        std::vector<bool> displayed_mising_sample (missing_samples.size(), false);
+        
+        for (size_t i = 0; i < missing_samples.size(); i++) {
+            if (displayed_mising_sample[i]) {
+                continue;
+            }
+            
+            for (auto anc: T.rsearch(missing_samples[i])) {
+                if (T.get_leaves(anc->identifier).size() < print_subtrees_threshold) {
+                    continue;
+                }
+#pragma omp parallel for
+                for (size_t j = i+1; j < missing_samples.size(); j++) {
+                    if (!displayed_mising_sample[j]) {
+                        if (T.is_ancestor(anc->identifier, missing_samples[j])) {
+                            displayed_mising_sample[j] = true;
+                        }
+                    }
+                }
+                
+                fprintf(stdout, "%s\n", get_newick_string(T, anc, false).c_str());
+                break;
+            }
+        }
+    }
 
     if (dout_filename != "") {
         fprintf(stderr, "Saving assignments. \n");
 
         Parsimony::data data;
         data.set_newick(get_newick_string(T, false));
+        
+        bfs.clear();
+        bfs = T.breadth_first_expansion();
 
         for (size_t idx = 0; idx < bfs.size(); idx++) {
             auto mutation_list = data.add_node_mutations();
@@ -516,7 +549,6 @@ int main(int argc, char** argv){
     }
     
     google::protobuf::ShutdownProtobufLibrary();
-    
 
 #if SAVE_PROFILE == 1
     Instrumentor::Get().EndSession();
