@@ -114,26 +114,65 @@ std::vector<Node*> Tree::rsearch (std::string nid) {
 }
 
 void Tree::remove_node_helper (std::string nid) { 
-    Node* source = all_nodes[nid];
+    auto it = all_nodes.find(nid);
+    Node* source = it->second;
     Node* curr_parent = source->parent;
     
-    // Remove source from curr_parent
-    size_t source_idx = 0;
-    for (size_t i = 0; i < curr_parent->children.size(); i++) {
-        if (curr_parent->children[i]->identifier == nid) {
-            source_idx = i;
-            break;
+    if (curr_parent != NULL) {
+        // Remove source from curr_parent
+        auto iter = std::find(curr_parent->children.begin(), curr_parent->children.end(), source);
+        assert (iter != curr_parent->children.end());
+        curr_parent->children.erase(iter);
+
+        // Remove parent if it no longer has any children
+        if (curr_parent->children.size() == 0) {
+            remove_node_helper (curr_parent->identifier);
+        }
+        // Move the remaining child one level up if it is the only child of its parent 
+        else if (curr_parent->children.size() == 1) {
+            auto child = curr_parent->children[0];
+            if (curr_parent->parent != NULL) {
+                child->parent = curr_parent->parent;
+                child->level = curr_parent->parent->level + 1;
+                curr_parent->parent->children.push_back(child);
+                
+                iter = std::find(curr_parent->parent->children.begin(), curr_parent->parent->children.end(), curr_parent);
+                assert(iter != curr_parent->parent->children.end());
+                curr_parent->parent->children.erase(iter);
+                
+                // Update levels of source descendants
+                std::queue<Node*> remaining_nodes;
+                remaining_nodes.push(child);
+                while (remaining_nodes.size() > 0) {
+                    Node* curr_node = remaining_nodes.front();
+                    remaining_nodes.pop();
+                    curr_node->level = curr_node->parent->level + 1;
+                    for (auto c: curr_node->children) {
+                        remaining_nodes.push(c);
+                    }
+                }
+            }
+
+            auto par_it = all_nodes.find(curr_parent->identifier);
+            assert (par_it != all_nodes.end());
+            all_nodes.erase(par_it);
+            delete curr_parent;
         }
     }
-    curr_parent->children.erase(curr_parent->children.begin()+source_idx);
-    // Remove parent if it no longer has any children
-    if (curr_parent->children.size() == 0) {
-        remove_node_helper (curr_parent->identifier);
-    }
 
-    //Remove source from all_nodes
-    auto it = all_nodes.find(nid);
-    all_nodes.erase(it);
+    //Remove source and descendants from all_nodes
+    std::queue<Node*> desc;
+    desc.push(source);
+    while (desc.size() > 0) {
+        Node* curr_node = desc.front();
+        desc.pop();
+        for (auto c: curr_node->children) {
+            desc.push(c);
+        }
+        it = all_nodes.find(curr_node->identifier);
+        all_nodes.erase(it);
+        delete curr_node;
+    }
 }
 
 void Tree::remove_node (std::string nid) { 
@@ -158,14 +197,8 @@ void Tree::move_node (std::string source_id, std::string dest_id) {
     destination->children.push_back(source);
 
     // Remove source from curr_parent
-    size_t source_idx = 0;
-    for (size_t i = 0; i < curr_parent->children.size(); i++) {
-        if (curr_parent->children[i]->identifier == source_id) {
-            source_idx = i;
-            break;
-        }
-    }
-    curr_parent->children.erase(curr_parent->children.begin()+source_idx);
+    auto iter = std::find(curr_parent->children.begin(), curr_parent->children.end(), source);
+    curr_parent->children.erase(iter);
     if (curr_parent->children.size() == 0) {
         remove_node(curr_parent->identifier);
     }
@@ -235,7 +268,7 @@ std::vector<Node*> Tree::depth_first_expansion(Node* node) {
     return traversal;
 }
 
-std::string get_newick_string (Tree T, Node* node, bool print_internal) {
+std::string get_newick_string (Tree& T, Node* node, bool print_internal) {
     std::string newick_string = "";
 
     std::vector<Node*> traversal = T.depth_first_expansion(node);
@@ -307,7 +340,7 @@ std::string get_newick_string (Tree T, Node* node, bool print_internal) {
     return newick_string;
 }
 
-std::string get_newick_string (Tree T, bool print_internal) {
+std::string get_newick_string (Tree& T, bool print_internal) {
     return get_newick_string(T, T.root, print_internal);
 }
 
@@ -352,75 +385,6 @@ void split (std::string s, std::vector<std::string>& words) {
     while (ss >> word) {
         words.push_back(word);
     };
-}
-
-Tree create_tree_from_newick (std::string filename) {
-    std::ifstream infile(filename);
-    std::string newick_string;
-    std::getline(infile, newick_string);
-    Tree T;
-
-    std::vector<std::string> leaves;
-    std::vector<size_t> num_open;
-    std::vector<size_t> num_close;
-
-    std::vector<std::string> s1;
-    split(newick_string, ',', s1);
-
-    for (auto s: s1) {
-        size_t no = 0;
-        size_t nc = 0;
-        bool stop = false;
-        std::string leaf = "";
-        for (auto c: s) {
-            if (c == ':') {
-                stop = true;
-            }
-            else if (c == '(') {
-                no++;
-            }
-            else if (c == ')') {
-                stop = true;
-                nc++;
-            }
-            else if (!stop) {
-                leaf += c;
-            }
-        }
-        leaves.push_back(leaf);
-        num_open.push_back(no);
-        num_close.push_back(nc);
-    }
-
-    if (num_open.size() != num_close.size()) {
-        fprintf(stderr, "ERROR: incorrect Newick format!\n");
-        exit(1);
-    }
-
-    T.curr_internal_node = 0;
-    std::stack<std::string> parent_stack;
-
-    for (size_t i=0; i<leaves.size(); i++) {
-        auto leaf = leaves[i];
-        auto no = num_open[i];
-        auto nc = num_close[i];
-        for (size_t j=0; j<no; j++) {
-            std::string nid = std::to_string(++T.curr_internal_node);
-            if (parent_stack.size() == 0) {
-                T.create_node(nid, nid);
-            }
-            else {
-                T.create_node(nid, nid, parent_stack.top());
-            }
-            parent_stack.push(nid);
-        }
-        T.create_node(leaf, leaf, parent_stack.top());
-        for (size_t j=0; j<nc; j++) {
-            parent_stack.pop();
-        }
-    }
-
-    return T;
 }
 
 Tree create_tree_from_newick_string (std::string newick_string) {
@@ -489,3 +453,10 @@ Tree create_tree_from_newick_string (std::string newick_string) {
     return T;
 }
 
+Tree create_tree_from_newick (std::string filename) {
+    std::ifstream infile(filename);
+    std::string newick_string;
+    std::getline(infile, newick_string);
+
+    return create_tree_from_newick_string(newick_string);
+}

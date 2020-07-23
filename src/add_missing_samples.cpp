@@ -61,7 +61,7 @@ int main(int argc, char** argv){
     uint32_t num_cores = tbb::task_scheduler_init::default_num_threads();
     uint32_t num_threads;
     bool collapse_tree=false;
-    size_t print_subtrees_threshold=0;
+    size_t print_subtrees_size=0;
     po::options_description desc{"Options"};
     desc.add_options()
         ("vcf", po::value<std::string>(&vcf_filename)->required(), "Input VCF file (in uncompressed or gzip-compressed format)")
@@ -70,7 +70,7 @@ int main(int argc, char** argv){
         ("save-assignments", po::value<std::string>(&dout_filename)->default_value(""), "Save output tree and parsimonious assignments")
         ("threads", po::value<uint32_t>(&num_threads)->default_value(num_cores), "Number of threads")
         ("collapse-final-tree", po::bool_switch(&collapse_tree), "Collapse internal nodes of the output tree with no mutations.")
-        ("print-subtrees-threshold", po::value<size_t>(&print_subtrees_threshold)->default_value(0), \
+        ("print-subtrees-size", po::value<size_t>(&print_subtrees_size)->default_value(0), \
          "Print minimum set of subtrees of size equal of larger than this value covering the missing samples.")
         ("help", "Print help messages");
     
@@ -92,6 +92,14 @@ int main(int argc, char** argv){
         return 1;
     }
 
+    if (print_subtrees_size == 1) {
+        std::cerr << "ERROR: print-subtrees-size should be larger than 1\n";
+        return 1;
+    }
+
+    omp_set_num_threads(num_threads);
+    omp_lock_t omplock;
+    omp_init_lock(&omplock);
 
 #if SAVE_PROFILE == 1
     Instrumentor::Get().BeginSession("test-main", "p1.json");
@@ -323,8 +331,6 @@ int main(int argc, char** argv){
             size_t best_j = 0;
             Node* best_node = NULL;
 
-            omp_set_num_threads(num_threads);
-
 #pragma omp parallel for
             for (size_t k = 0; k < total_nodes; k++) {
                 mapper2_input inp;
@@ -492,7 +498,7 @@ int main(int argc, char** argv){
     fprintf(stderr, "Printing final tree. \n");
     fprintf(stdout, "%s\n", get_newick_string(T, false).c_str());
 
-    if (print_subtrees_threshold > 0) {
+    if (print_subtrees_size > 1) {
         fprintf(stderr, "Printing subtrees for display. \n");
         std::vector<bool> displayed_mising_sample (missing_samples.size(), false);
         
@@ -502,19 +508,65 @@ int main(int argc, char** argv){
             }
             
             for (auto anc: T.rsearch(missing_samples[i])) {
-                if (T.get_leaves(anc->identifier).size() < print_subtrees_threshold) {
+                size_t num_leaves = T.get_leaves(anc->identifier).size();
+                if (num_leaves < print_subtrees_size) {
                     continue;
                 }
+
+                std::string newick = get_newick_string(T, anc, false);
+                Tree new_T = create_tree_from_newick_string(newick);
+
+                if (num_leaves > print_subtrees_size) {
+                    auto last_anc = new_T.get_node(missing_samples[i]);
+                    auto ancestors = new_T.rsearch(missing_samples[i]);
+                    if (ancestors.size() > 1) {
+                        last_anc = ancestors[ancestors.size()-2];
+                    }
+                    std::vector<Node*> siblings;
+                    for (auto child: new_T.root->children) {
+                        if (child->identifier != last_anc->identifier) {
+                            siblings.push_back(child);
+                        }
+                    }
+                    
+                    for (size_t k=0; k<siblings.size(); k++) {
+                        auto curr_sibling = siblings[k];
+                        auto sibling_leaves = new_T.get_leaves(curr_sibling->identifier);
+                        if (num_leaves-sibling_leaves.size() < print_subtrees_size) {
+                            for (auto child: curr_sibling->children) {
+                                siblings.push_back(child);
+                            }
+                        }
+                        else {
+                            new_T.remove_node(curr_sibling->identifier);
+                            num_leaves -= sibling_leaves.size();
+                            if (num_leaves == print_subtrees_size) {
+                                break;
+                            }
+                        }
+                    }
+
+//                    for (auto lid: sibling_leaves) {
+//                        new_T.remove_node(lid);
+//                        num_leaves--;
+//                        if (num_leaves == print_subtrees_size) {
+//                            break;
+//                        }
+//                    }
+
+                    newick = get_newick_string(new_T, false);
+                }
+
 #pragma omp parallel for
                 for (size_t j = i+1; j < missing_samples.size(); j++) {
                     if (!displayed_mising_sample[j]) {
-                        if (T.is_ancestor(anc->identifier, missing_samples[j])) {
+                        if (new_T.get_node(missing_samples[j]) != NULL) {
                             displayed_mising_sample[j] = true;
                         }
                     }
                 }
                 
-                fprintf(stdout, "%s\n", get_newick_string(T, anc, false).c_str());
+                fprintf(stdout, "%s\n", newick.c_str());
                 break;
             }
         }

@@ -6,6 +6,7 @@
 #include <queue>
 #include <stack>
 #include <algorithm>
+#include <cassert>
 
 class Node {
     public:
@@ -33,6 +34,9 @@ class Tree {
             root = NULL;
             all_nodes.clear();
         }
+        
+        //TODO
+        Tree (Node* n);
 
         size_t max_level;
         Node* root;
@@ -54,8 +58,8 @@ class Tree {
         std::vector<Node*> depth_first_expansion(Node* node);
 };
 
-std::string get_newick_string(Tree T, bool b);
-std::string get_newick_string(Tree T, Node* node, bool b);
+std::string get_newick_string(Tree& T, bool b);
+std::string get_newick_string(Tree& T, Node* node, bool b);
 Tree create_tree_from_newick (std::string filename);
 Tree create_tree_from_newick_string (std::string newick_string);
 void split(std::string s, char delim, std::vector<std::string>& words);
