@@ -33,6 +33,7 @@ class Timer {
 struct mutation {
     int position;
     int8_t ref_nuc;
+    int8_t par_nuc;
     std::vector<int8_t> mut_nuc;
 };
 

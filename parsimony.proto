@@ -4,7 +4,8 @@ package Parsimony;
 message mut {
     int32 position = 1;
     int32 ref_nuc = 2;
-    repeated int32 mut_nuc = 3;
+    int32 par_nuc = 3;
+    repeated int32 mut_nuc = 4;
 }
 
 message mutation_list {

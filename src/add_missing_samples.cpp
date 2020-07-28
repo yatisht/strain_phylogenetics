@@ -52,6 +52,21 @@ std::vector<int8_t> get_nuc_id (char c) {
     }
 }
 
+char get_nuc_char (int8_t nuc_id) {
+    switch (nuc_id) {
+        case 0: return 'A';
+                break;
+        case 1: return 'C';
+                break;
+        case 2: return 'G';
+                break;
+        case 3: return 'T';
+                break;
+        default : return 'N'; 
+                  break;
+    }
+}
+
 int main(int argc, char** argv){
 
     std::string tree_filename;
@@ -234,6 +249,7 @@ int main(int argc, char** argv){
                 mutation m;
                 m.position = mut.position();
                 m.ref_nuc = mut.ref_nuc();
+                m.par_nuc = mut.par_nuc();
                 for (int n = 0; n < mut.mut_nuc_size(); n++) {
                     m.mut_nuc.emplace_back(mut.mut_nuc(n));
                 }
@@ -290,6 +306,7 @@ int main(int argc, char** argv){
                         auto ref_nucs = get_nuc_id(words[3][0]);
                         assert(ref_nucs.size() == 1);
                         m.ref_nuc = ref_nucs[0];
+                        m.par_nuc = ref_nucs[0];
                         if (isdigit(words[j][0])) {
                             int allele_id = std::stoi(words[j]);
                             if (allele_id > 0) { 
@@ -397,6 +414,7 @@ int main(int argc, char** argv){
                             mutation m;
                             m.position = m1.position;
                             m.ref_nuc = m1.ref_nuc;
+                            m.par_nuc = m1.par_nuc;
                             m.mut_nuc.emplace_back(m1.mut_nuc[0]);
                             curr_l1_mut.emplace_back(m);
                         }
@@ -412,6 +430,7 @@ int main(int argc, char** argv){
                                     mutation m;
                                     m.position = m1.position;
                                     m.ref_nuc = m1.ref_nuc;
+                                    m.par_nuc = m1.par_nuc;
                                     m.mut_nuc.emplace_back(m1.mut_nuc[0]);
                                     common_mut.emplace_back(m);
                                     break;
@@ -422,6 +441,7 @@ int main(int argc, char** argv){
                             mutation m;
                             m.position = m1.position;
                             m.ref_nuc = m1.ref_nuc;
+                            m.par_nuc = m1.par_nuc;
                             m.mut_nuc.emplace_back(m1.mut_nuc[0]);
                             l1_mut.emplace_back(m);
                         }
@@ -440,6 +460,7 @@ int main(int argc, char** argv){
                             mutation m;
                             m.position = m1.position;
                             m.ref_nuc = m1.ref_nuc;
+                            m.par_nuc = m1.par_nuc;
                             m.mut_nuc.emplace_back(m1.mut_nuc[0]);
                             l2_mut.emplace_back(m);
                         }
@@ -463,6 +484,7 @@ int main(int argc, char** argv){
                         mutation m;
                         m.position = mut.position;
                         m.ref_nuc = mut.ref_nuc;
+                        m.par_nuc = mut.par_nuc;
                         for (auto nuc: mut.mut_nuc) {
                             m.mut_nuc.emplace_back(nuc);
                         }
@@ -496,7 +518,59 @@ int main(int argc, char** argv){
     }
 
     fprintf(stderr, "Printing final tree. \n");
-    fprintf(stdout, "%s\n", get_newick_string(T, false, true).c_str());
+    fprintf(stdout, "%s\n", get_newick_string(T, true, true).c_str());
+    
+    if (missing_samples.size() > 0) {
+        fprintf(stderr, "Printing mutation paths in the new tree for missing samples.\n");  
+        
+        for (size_t s=0; s<missing_samples.size(); s++) {
+            auto sample = missing_samples[s];
+            auto sample_node = T.get_node(sample);
+            std::stack<std::string> mutation_stack;
+            std::string curr_node_mutation_string;
+
+            auto curr_node_mutations = node_mutations[sample_node];
+            if (curr_node_mutations.size() > 0) {
+                curr_node_mutation_string = sample + ":";
+                size_t num_mutations = curr_node_mutations.size();
+                for (size_t k = 0; k < num_mutations; k++) {
+                    curr_node_mutation_string += get_nuc_char(curr_node_mutations[k].par_nuc) + std::to_string(curr_node_mutations[k].position) + get_nuc_char(curr_node_mutations[k].mut_nuc[0]); 
+                    if (k < num_mutations-1) {
+                        curr_node_mutation_string += ',';
+                    }
+                    else {
+                        curr_node_mutation_string += ';';    
+                    }
+                }
+                mutation_stack.push(curr_node_mutation_string);
+            }
+
+            for (auto anc_node: T.rsearch(sample)) {
+                curr_node_mutations = node_mutations[anc_node];
+                if (curr_node_mutations.size() > 0) {
+                    curr_node_mutation_string = anc_node->identifier + ":";
+                    size_t num_mutations = curr_node_mutations.size();
+                    for (size_t k = 0; k < num_mutations; k++) {
+                        curr_node_mutation_string += get_nuc_char(curr_node_mutations[k].par_nuc) + std::to_string(curr_node_mutations[k].position) + get_nuc_char(curr_node_mutations[k].mut_nuc[0]); 
+                        if (k < num_mutations-1) {
+                            curr_node_mutation_string += ',';
+                        }
+                        else {
+                            curr_node_mutation_string += ';';    
+                        }
+                    }
+                    mutation_stack.push(curr_node_mutation_string);
+                }
+            }
+            
+            fprintf(stderr, "%s\t", sample.c_str()); 
+            while (mutation_stack.size()) {
+                fprintf(stderr, "%s", mutation_stack.top().c_str()); 
+                mutation_stack.pop();
+            }
+            fprintf(stderr, "\n"); 
+        }
+    }
 
     if (print_subtrees_size > 1) {
         fprintf(stderr, "Printing subtrees for display. \n");
@@ -580,6 +654,7 @@ int main(int argc, char** argv){
                 auto mut = mutation_list->add_mutation();
                 mut->set_position(m.position);
                 mut->set_ref_nuc(m.ref_nuc);
+                mut->set_par_nuc(m.par_nuc);
                 mut->clear_mut_nuc();
                 for (auto nuc: m.mut_nuc) {
                     mut->add_mut_nuc(nuc);

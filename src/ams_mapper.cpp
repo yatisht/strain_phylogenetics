@@ -129,6 +129,7 @@ int mapper_body::operator()(mapper_input input) {
                     mutation m;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
+                    m.par_nuc = par_state;
                     m.mut_nuc.emplace_back(state);
 
                     data_lock.lock();
@@ -139,6 +140,7 @@ int mapper_body::operator()(mapper_input input) {
                     mutation m;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
+                    m.par_nuc = par_state;
                     m.mut_nuc.emplace_back(state);
 
                     data_lock.lock();
@@ -176,6 +178,7 @@ int mapper2_body(mapper2_input& input) {
                                 mutation m;
                                 m.position = m1.position;
                                 m.ref_nuc = m1.ref_nuc;
+                                m.par_nuc = m1.par_nuc;
                                 m.mut_nuc.emplace_back(anc_nuc);
 
                                 ancestral_mutations.emplace_back(m);
@@ -211,6 +214,7 @@ int mapper2_body(mapper2_input& input) {
         bool found_pos = false;
         bool found = false;
         bool has_ref = false;
+        auto anc_nuc = m1.ref_nuc;
         for (auto nuc: m1.mut_nuc) {
             if (nuc == m1.ref_nuc) {
                 has_ref = true;
@@ -219,12 +223,13 @@ int mapper2_body(mapper2_input& input) {
         for (auto m2: ancestral_mutations) {
             if (m1.position == m2.position) {
                 found_pos = true;
-                auto anc_nuc = m2.mut_nuc[0];
+                anc_nuc = m2.mut_nuc[0];
                 for (auto nuc: m1.mut_nuc) {
                     if (nuc == anc_nuc) {
                         found = true;
                     }
                 }
+                break;
             }
         }
         if (!(found || (!found_pos && has_ref))) {
@@ -235,6 +240,7 @@ int mapper2_body(mapper2_input& input) {
             mutation m;
             m.position = m1.position;
             m.ref_nuc = m1.ref_nuc;
+            m.par_nuc = anc_nuc;
             if (has_ref) {
                 m.mut_nuc.emplace_back(m1.ref_nuc);
             }
@@ -265,6 +271,7 @@ int mapper2_body(mapper2_input& input) {
             mutation m;
             m.position = m1.position;
             m.ref_nuc = m1.ref_nuc;
+            m.par_nuc = anc_nuc;
             m.mut_nuc.emplace_back(m1.ref_nuc);
             (*input.excess_mutations).emplace_back(m);
         }
