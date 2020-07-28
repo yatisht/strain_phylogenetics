@@ -11,6 +11,7 @@
 class Node {
     public:
         size_t level;
+        float branch_length;
         std::string identifier;
         std::string tag;
         Node* parent;
@@ -19,8 +20,8 @@ class Node {
         bool is_leaf();
         bool is_root();
         Node();
-        Node(std::string id, std::string t);
-        Node(std::string id, std::string t, Node* p);
+        Node(std::string id, std::string t, float l);
+        Node(std::string id, std::string t, Node* p, float l);
 };
 
 class Tree {
@@ -45,8 +46,8 @@ class Tree {
         size_t get_max_level ();
         std::vector<Node*> get_leaves();
         std::vector<Node*> get_leaves(std::string nid);
-        void create_node (std::string identifier, std::string tag);
-        void create_node (std::string identifier, std::string tag, std::string parent_id);
+        void create_node (std::string identifier, std::string tag, float branch_length = -1.0);
+        void create_node (std::string identifier, std::string tag, std::string parent_id, float branch_length = -1.0);
         Node* get_node (std::string identifier);
         bool is_ancestor (std::string anc_id, std::string nid);
         std::vector<Node*> rsearch (std::string nid);
@@ -58,8 +59,8 @@ class Tree {
         std::vector<Node*> depth_first_expansion(Node* node);
 };
 
-std::string get_newick_string(Tree& T, bool b);
-std::string get_newick_string(Tree& T, Node* node, bool b);
+std::string get_newick_string(Tree& T, bool b1, bool b2);
+std::string get_newick_string(Tree& T, Node* node, bool b1, bool b2);
 Tree create_tree_from_newick (std::string filename);
 Tree create_tree_from_newick_string (std::string newick_string);
 void split(std::string s, char delim, std::vector<std::string>& words);

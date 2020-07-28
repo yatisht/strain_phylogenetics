@@ -496,7 +496,7 @@ int main(int argc, char** argv){
     }
 
     fprintf(stderr, "Printing final tree. \n");
-    fprintf(stdout, "%s\n", get_newick_string(T, false).c_str());
+    fprintf(stdout, "%s\n", get_newick_string(T, false, true).c_str());
 
     if (print_subtrees_size > 1) {
         fprintf(stderr, "Printing subtrees for display. \n");
@@ -513,7 +513,7 @@ int main(int argc, char** argv){
                     continue;
                 }
 
-                std::string newick = get_newick_string(T, anc, false);
+                std::string newick = get_newick_string(T, anc, false, true);
                 Tree new_T = create_tree_from_newick_string(newick);
 
                 if (num_leaves > print_subtrees_size) {
@@ -546,15 +546,7 @@ int main(int argc, char** argv){
                         }
                     }
 
-//                    for (auto lid: sibling_leaves) {
-//                        new_T.remove_node(lid);
-//                        num_leaves--;
-//                        if (num_leaves == print_subtrees_size) {
-//                            break;
-//                        }
-//                    }
-
-                    newick = get_newick_string(new_T, false);
+                    newick = get_newick_string(new_T, false, true);
                 }
 
 #pragma omp parallel for
@@ -576,7 +568,7 @@ int main(int argc, char** argv){
         fprintf(stderr, "Saving assignments. \n");
 
         Parsimony::data data;
-        data.set_newick(get_newick_string(T, false));
+        data.set_newick(get_newick_string(T, false, true));
         
         bfs.clear();
         bfs = T.breadth_first_expansion();

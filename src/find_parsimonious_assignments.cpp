@@ -93,7 +93,7 @@ int main(int argc, char** argv){
     }
 
     if (!print_vcf) {
-        std::cout << get_newick_string(T, true) << std::endl; 
+        std::cout << get_newick_string(T, true, false) << std::endl; 
     }
 
     std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);

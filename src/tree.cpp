@@ -13,20 +13,23 @@ Node::Node() {
     identifier = "";
     tag = "";
     parent = NULL;
+    branch_length = -1.0;
 }
 
-Node::Node (std::string id, std::string t) {
+Node::Node (std::string id, std::string t, float len) {
     identifier = id;
     tag = t;
     parent = NULL;
     level = 1;
+    branch_length = len;
 }
 
-Node::Node (std::string id, std::string t, Node* p) {
+Node::Node (std::string id, std::string t, Node* p, float len) {
     identifier = id;
     tag = t;
     parent = p;
     level = p->level + 1;
+    branch_length = len;
 }
 
 size_t Tree::get_max_level () {
@@ -62,17 +65,17 @@ std::vector<Node*> Tree::get_leaves(std::string nid) {
     return leaves;
 }
 
-void Tree::create_node (std::string identifier, std::string tag) {
+void Tree::create_node (std::string identifier, std::string tag, float branch_len) {
     all_nodes.clear();
     max_level = 1;
-    Node* n = new Node(identifier, tag);
+    Node* n = new Node(identifier, tag, branch_len);
     root = n;
     all_nodes[identifier] = root;
 }
 
-void Tree::create_node (std::string identifier, std::string tag, std::string parent_id) {
+void Tree::create_node (std::string identifier, std::string tag, std::string parent_id, float branch_len) {
     Node* par = all_nodes[parent_id];
-    Node* n = new Node(identifier, tag, par);
+    Node* n = new Node(identifier, tag, par, branch_len);
     if (all_nodes.find(identifier) != all_nodes.end()) {
         fprintf(stderr, "Error: %s already in the tree!\n", identifier.c_str());
         exit(1);
@@ -134,6 +137,8 @@ void Tree::remove_node_helper (std::string nid) {
             if (curr_parent->parent != NULL) {
                 child->parent = curr_parent->parent;
                 child->level = curr_parent->parent->level + 1;
+                child->branch_length += curr_parent->branch_length;
+
                 curr_parent->parent->children.push_back(child);
                 
                 iter = std::find(curr_parent->parent->children.begin(), curr_parent->parent->children.end(), curr_parent);
@@ -194,6 +199,8 @@ void Tree::move_node (std::string source_id, std::string dest_id) {
     Node* curr_parent = source->parent;
 
     source->parent = destination;
+    // source->branch_length = -1.0; // Invalidate source branch length
+
     destination->children.push_back(source);
 
     // Remove source from curr_parent
@@ -268,7 +275,7 @@ std::vector<Node*> Tree::depth_first_expansion(Node* node) {
     return traversal;
 }
 
-std::string get_newick_string (Tree& T, Node* node, bool print_internal) {
+std::string get_newick_string (Tree& T, Node* node, bool print_internal, bool print_branch_len) {
     std::string newick_string = "";
 
     std::vector<Node*> traversal = T.depth_first_expansion(node);
@@ -277,9 +284,11 @@ std::string get_newick_string (Tree& T, Node* node, bool print_internal) {
     bool prev_open = true;
 
     std::stack<std::string> node_stack;
+    std::stack<float> branch_length_stack;
 
     for (auto n: traversal) {
         size_t level = n->level-level_offset;
+        float branch_length = n->branch_length;
         if (curr_level < level) {
             if (!prev_open) {
                 newick_string += ",";
@@ -294,10 +303,14 @@ std::string get_newick_string (Tree& T, Node* node, bool print_internal) {
             }
             if (n->is_leaf()) {
                 newick_string += n->identifier;
+                if ((print_branch_len) && (branch_length >= 0)) {
+                    newick_string += ":" + std::to_string(branch_length);
+                }
                 prev_open = false;
             }
             else {
                 node_stack.push(n->identifier);
+                branch_length_stack.push(branch_length);
             }
         }
         else if (curr_level > level) {
@@ -307,22 +320,34 @@ std::string get_newick_string (Tree& T, Node* node, bool print_internal) {
                 if (print_internal){
                     newick_string += node_stack.top();
                 }
+                if ((print_branch_len) && (branch_length_stack.top() >= 0)) {
+                    newick_string += ":" + std::to_string(branch_length_stack.top());
+                }
                 node_stack.pop();
+                branch_length_stack.pop();
             }
             if (n->is_leaf()) {
                 newick_string += "," + n->identifier;
+                if ((print_branch_len) && (branch_length >= 0)) {
+                    newick_string += ":" + std::to_string(branch_length);
+                }
             }
             else {
                 node_stack.push(n->identifier);
+                branch_length_stack.push(branch_length);
             }
         }
         else {
             prev_open = false;
             if (n->is_leaf()) {
                 newick_string += "," + n->identifier;
+                if ((print_branch_len) && (branch_length >= 0)) {
+                    newick_string += ":" + std::to_string(branch_length);
+                }
             }
             else {
                 node_stack.push(n->identifier);
+                branch_length_stack.push(branch_length);
             }
         }
         curr_level = level;
@@ -333,15 +358,19 @@ std::string get_newick_string (Tree& T, Node* node, bool print_internal) {
         if (print_internal) {
             newick_string += node_stack.top();
         }
+        if ((print_branch_len) && (branch_length_stack.top() >= 0)) {
+            newick_string += ":" + std::to_string(branch_length_stack.top());
+        }
         node_stack.pop();
+        branch_length_stack.pop();
     }
 
     newick_string += ";";
     return newick_string;
 }
 
-std::string get_newick_string (Tree& T, bool print_internal) {
-    return get_newick_string(T, T.root, print_internal);
+std::string get_newick_string (Tree& T, bool print_internal, bool print_branch_len) {
+    return get_newick_string(T, T.root, print_internal, print_branch_len);
 }
 
 void split (std::string s, char delim, std::vector<std::string>& words) {
@@ -363,20 +392,7 @@ void split (std::string s, char delim, std::vector<std::string>& words) {
 void split (std::string s, std::vector<std::string>& words) {
     std::string curr = "";
     std::vector<std::string> ret;
-//    for (auto c: s) {
-//        if ((c == ' ') || (c == '\t')) {
-//            if (curr != "") {
-//                ret.push_back(curr);
-//            }
-//            curr = "";
-//        }
-//        else {
-//            curr += c;
-//        }
-//    }
-//    if (curr != "") {
-//        ret.push_back(curr);
-//    }
+    
     // Used to split string around spaces.
     std::istringstream ss(s);
 
@@ -393,6 +409,7 @@ Tree create_tree_from_newick_string (std::string newick_string) {
     std::vector<std::string> leaves;
     std::vector<size_t> num_open;
     std::vector<size_t> num_close;
+    std::stack<float> branch_len;
 
     std::vector<std::string> s1;
     split(newick_string, ',', s1);
@@ -401,10 +418,14 @@ Tree create_tree_from_newick_string (std::string newick_string) {
         size_t no = 0;
         size_t nc = 0;
         bool stop = false;
+        bool branch_start = false;
         std::string leaf = "";
+        std::string branch = "";
         for (auto c: s) {
             if (c == ':') {
                 stop = true;
+                branch = "";
+                branch_start = true;
             }
             else if (c == '(') {
                 no++;
@@ -412,14 +433,25 @@ Tree create_tree_from_newick_string (std::string newick_string) {
             else if (c == ')') {
                 stop = true;
                 nc++;
+                float len = (branch.size() > 0) ? std::stof(branch) : -1.0;
+                branch_len.push(len);
+                branch_start = false;
             }
             else if (!stop) {
                 leaf += c;
+                branch_start = false;
+            }
+            else if (branch_start) {
+                if (isdigit(c)  || c == '.') {
+                    branch += c;
+                }
             }
         }
         leaves.push_back(leaf);
         num_open.push_back(no);
         num_close.push_back(nc);
+        float len = (branch.size() > 0) ? std::stof(branch) : -1.0;
+        branch_len.push(len);
     }
 
     if (num_open.size() != num_close.size()) {
@@ -437,14 +469,17 @@ Tree create_tree_from_newick_string (std::string newick_string) {
         for (size_t j=0; j<no; j++) {
             std::string nid = std::to_string(++T.curr_internal_node);
             if (parent_stack.size() == 0) {
-                T.create_node(nid, nid);
+                T.create_node(nid, nid, branch_len.top());
+                branch_len.pop();
             }
             else {
-                T.create_node(nid, nid, parent_stack.top());
+                T.create_node(nid, nid, parent_stack.top(), branch_len.top());
+                branch_len.pop();
             }
             parent_stack.push(nid);
         }
-        T.create_node(leaf, leaf, parent_stack.top());
+        T.create_node(leaf, leaf, parent_stack.top(), branch_len.top());
+        branch_len.pop();
         for (size_t j=0; j<nc; j++) {
             parent_stack.pop();
         }
