@@ -137,7 +137,7 @@ void Tree::remove_node_helper (std::string nid) {
             if (curr_parent->parent != NULL) {
                 child->parent = curr_parent->parent;
                 child->level = curr_parent->parent->level + 1;
-                child->branch_length += curr_parent->branch_length;
+                // child->branch_length += curr_parent->branch_length;
 
                 curr_parent->parent->children.push_back(child);
                 
