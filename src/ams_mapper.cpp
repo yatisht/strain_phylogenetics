@@ -184,6 +184,10 @@ int mapper2_body(mapper2_input& input) {
                                 ancestral_mutations.emplace_back(m);
                                 anc_positions.emplace_back(m1.position);
                                 (*input.excess_mutations).emplace_back(m);
+                                if (m2.mut_nuc.size() > 1) {
+                                    (*input.imputed_mutations).emplace_back(m);
+                                }
+                                break;
                             }
                         }
                     }
