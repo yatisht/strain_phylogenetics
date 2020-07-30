@@ -232,7 +232,27 @@ int mapper2_body(mapper2_input& input) {
                 break;
             }
         }
-        if (!(found || (!found_pos && has_ref))) {
+        if (found) {
+            if (m1.mut_nuc.size() > 1) {
+                mutation m;
+                m.position = m1.position;
+                m.ref_nuc = m1.ref_nuc;
+                m.par_nuc = anc_nuc;
+                m.mut_nuc.emplace_back(anc_nuc);
+                input.imputed_mutations->emplace_back(m);
+            }
+        }
+        else if (!found_pos && has_ref) {
+            if (m1.mut_nuc.size() > 1) {
+                mutation m;
+                m.position = m1.position;
+                m.ref_nuc = m1.ref_nuc;
+                m.par_nuc = anc_nuc;
+                m.mut_nuc.emplace_back(m1.ref_nuc);
+                input.imputed_mutations->emplace_back(m);
+            }
+        }
+        else {
             set_difference += 1;
             if (set_difference > best_set_difference) {
                 return 1;
@@ -248,6 +268,9 @@ int mapper2_body(mapper2_input& input) {
                 m.mut_nuc.emplace_back(m1.mut_nuc[0]);
             }
             input.excess_mutations->emplace_back(m);
+            if (m1.mut_nuc.size() > 1) {
+                input.imputed_mutations->emplace_back(m);
+            }
         }
     }
 

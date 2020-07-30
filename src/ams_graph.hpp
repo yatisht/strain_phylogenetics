@@ -69,6 +69,7 @@ struct mapper2_input {
     Node** best_node;
 
     std::vector<mutation>* excess_mutations;
+    std::vector<mutation>* imputed_mutations;
 };
 
 //struct mapper2_body {

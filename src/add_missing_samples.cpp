@@ -342,6 +342,7 @@ int main(int argc, char** argv){
             size_t total_nodes = dfs.size();
                         
             std::vector<std::vector<mutation>> node_excess_mutations(total_nodes);
+            std::vector<std::vector<mutation>> node_imputed_mutations(total_nodes);
 
             size_t best_level = 1e9;
             int best_set_difference = 1e9;
@@ -356,6 +357,7 @@ int main(int argc, char** argv){
                 inp.node_mutations = &node_mutations;
                 inp.missing_sample_mutations = &missing_sample_mutations[s];
                 inp.excess_mutations = &node_excess_mutations[k];
+                inp.imputed_mutations = &node_imputed_mutations[k];
                 inp.best_level = &best_level;
                 inp.best_set_difference = &best_set_difference;
                 inp.best_node = &best_node;
@@ -492,6 +494,18 @@ int main(int argc, char** argv){
                     }
                     node_mutations[node] = node_mut;
                 }
+
+                fprintf (stderr, "Imputed mutations:\t");
+                size_t tot = node_imputed_mutations[best_j].size();
+                for (size_t curr = 0; curr < tot; curr++) {
+                    if (curr < tot-1) {
+                        fprintf (stderr, "%i:%c;", node_imputed_mutations[best_j][curr].position, get_nuc_char(node_imputed_mutations[best_j][curr].mut_nuc[0]));
+                    }
+                    else {
+                        fprintf (stderr, "%i:%c", node_imputed_mutations[best_j][curr].position, get_nuc_char(node_imputed_mutations[best_j][curr].mut_nuc[0]));
+                    }
+                }
+                fprintf(stderr, "\n");
             }
 
             // fprintf(stderr, "Completed in %ld msec \n", timer.Stop());
