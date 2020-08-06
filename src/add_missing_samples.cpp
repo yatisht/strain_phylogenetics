@@ -233,16 +233,15 @@ int main(int argc, char** argv){
 
         T = create_tree_from_newick_string(data.newick());
 
-        bfs.clear();
-        bfs = T.breadth_first_expansion();
+        auto dfs = T.depth_first_expansion();
         
-        for (size_t idx = 0; idx < bfs.size(); idx++) {
-            bfs_idx[bfs[idx]->identifier] = idx;
+        for (size_t idx = 0; idx < dfs.size(); idx++) {
+            bfs_idx[dfs[idx]->identifier] = idx;
         }
 
-        for (size_t idx = 0; idx < bfs.size(); idx++) {
+        for (size_t idx = 0; idx < dfs.size(); idx++) {
             auto mutation_list = data.node_mutations(idx);
-            auto node = bfs[idx];
+            auto node = dfs[idx];
             node_mutations.insert(std::pair<Node*, std::vector<mutation>>(node, std::vector<mutation>()));  
             for (int k = 0; k < mutation_list.mutation_size(); k++) {
                 auto mut = mutation_list.mutation(k);
@@ -658,12 +657,11 @@ int main(int argc, char** argv){
         Parsimony::data data;
         data.set_newick(get_newick_string(T, false, true));
         
-        bfs.clear();
-        bfs = T.breadth_first_expansion();
+        auto dfs = T.depth_first_expansion();
 
-        for (size_t idx = 0; idx < bfs.size(); idx++) {
+        for (size_t idx = 0; idx < dfs.size(); idx++) {
             auto mutation_list = data.add_node_mutations();
-            auto mutations = node_mutations[bfs[idx]];
+            auto mutations = node_mutations[dfs[idx]];
             for (auto m: mutations) {
                 auto mut = mutation_list->add_mutation();
                 mut->set_position(m.position);
