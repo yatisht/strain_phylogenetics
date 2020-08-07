@@ -76,6 +76,7 @@ int main(int argc, char** argv){
     uint32_t num_cores = tbb::task_scheduler_init::default_num_threads();
     uint32_t num_threads;
     bool collapse_tree=false;
+    bool print_uncondensed_tree = false;
     size_t print_subtrees_size=0;
     po::options_description desc{"Options"};
     desc.add_options()
@@ -85,6 +86,7 @@ int main(int argc, char** argv){
         ("save-assignments", po::value<std::string>(&dout_filename)->default_value(""), "Save output tree and parsimonious assignments")
         ("threads", po::value<uint32_t>(&num_threads)->default_value(num_cores), "Number of threads")
         ("collapse-final-tree", po::bool_switch(&collapse_tree), "Collapse internal nodes of the output tree with no mutations.")
+        ("print_uncondensed-final-tree", po::bool_switch(&print_uncondensed_tree), "Print the final tree in uncondensed format.")
         ("print-subtrees-size", po::value<size_t>(&print_subtrees_size)->default_value(0), \
          "Print minimum set of subtrees of size equal of larger than this value covering the missing samples.")
         ("help", "Print help messages");
@@ -112,6 +114,11 @@ int main(int argc, char** argv){
         return 1;
     }
 
+    if ((din_filename != "") && collapse_tree) {
+        std::cerr << "ERROR: cannot load assignments and collapse tree simulaneously.\n";
+        return 1;
+    }
+
     omp_set_num_threads(num_threads);
     omp_lock_t omplock;
     omp_init_lock(&omplock);
@@ -129,6 +136,10 @@ int main(int argc, char** argv){
     std::vector<std::vector<mutation>> missing_sample_mutations;
     size_t num_missing = 0;
 
+    std::unordered_map<std::string, std::vector<std::string>> condensed_nodes;
+    Tree condensed_T; 
+    std::unordered_map<Node*, std::vector<mutation>> condensed_node_mutations;
+    
     std::vector<Node*> bfs;
     std::unordered_map<std::string, size_t> bfs_idx;
     
@@ -234,10 +245,6 @@ int main(int argc, char** argv){
         T = create_tree_from_newick_string(data.newick());
 
         auto dfs = T.depth_first_expansion();
-        
-        for (size_t idx = 0; idx < dfs.size(); idx++) {
-            bfs_idx[dfs[idx]->identifier] = idx;
-        }
 
         for (size_t idx = 0; idx < dfs.size(); idx++) {
             auto mutation_list = data.node_mutations(idx);
@@ -253,6 +260,15 @@ int main(int argc, char** argv){
                     m.mut_nuc.emplace_back(mut.mut_nuc(n));
                 }
                 node_mutations[node].emplace_back(m);
+            }
+        }
+        
+        size_t num_condensed_nodes = static_cast<size_t>(data.condensed_nodes_size());
+        for (size_t idx = 0; idx < num_condensed_nodes; idx++) {
+            auto cn = data.condensed_nodes(idx);
+            condensed_nodes.insert(std::pair<std::string, std::vector<std::string>>(cn.node_name(), std::vector<std::string>(cn.condensed_leaves_size())));
+            for (int k = 0; k < cn.condensed_leaves_size(); k++) {
+                condensed_nodes[cn.node_name()][k] =cn.condensed_leaves(k);
             }
         }
         
@@ -278,7 +294,7 @@ int main(int argc, char** argv){
                 if (words[1] == "POS") {
                     for (size_t j=9; j < words.size(); j++) {
                         variant_ids.emplace_back(words[j]);
-                        if (bfs_idx.find(words[j]) == bfs_idx.end()) {
+                        if (T.get_node(words[j]) == NULL) {
                             missing_samples.emplace_back(words[j]);
                             num_missing++;
                             missing_idx.emplace_back(j);
@@ -523,15 +539,96 @@ int main(int argc, char** argv){
             if (mutations.size() == 0) {
                 auto node = bfs[idx];
                 auto parent = node->parent;
-                for (auto child: node->children) {
+                auto children = node->children;
+                for (auto child: children) {
                     T.move_node(child->identifier, parent->identifier);
                 }
             }
         }
+        
+        condensed_T = create_tree_from_newick_string(get_newick_string(T, false, true));
+        fprintf(stderr, "Condensing identical sequences. \n");
+
+        bfs.clear();
+        bfs = T.breadth_first_expansion();
+        auto condensed_bfs = condensed_T.breadth_first_expansion();
+
+        assert(condensed_bfs.size() == bfs.size());
+
+        condensed_nodes.clear();
+
+        for (size_t it = 0; it < condensed_bfs.size(); it++) {
+            auto condensed_node = condensed_bfs[it];
+            condensed_node_mutations.insert(std::pair<Node*, std::vector<mutation>>(condensed_node, std::vector<mutation>(node_mutations[bfs[it]].size())));
+            for (size_t k = 0; k < node_mutations[bfs[it]].size(); k++) {
+                condensed_node_mutations[condensed_node][k] = node_mutations[bfs[it]][k];
+            }
+        }
+
+        auto tree_leaves = T.get_leaves();
+        for (auto l1: tree_leaves) {
+            std::vector<std::string> polytomy_nodes;
+
+            if (std::find(missing_samples.begin(), missing_samples.end(), l1->identifier) != missing_samples.end()) {
+                continue;
+            }
+            if (node_mutations[l1].size() > 0) {
+                continue;
+            }
+            if (condensed_T.get_node(l1->identifier) == NULL) {
+                continue;
+            }
+
+            for (auto l2: l1->parent->children) {
+                if (std::find(missing_samples.begin(), missing_samples.end(), l2->identifier) != missing_samples.end()) {
+                    continue;
+                }
+                if (l2->is_leaf() && (condensed_T.get_node(l2->identifier) != NULL) && (node_mutations[l2].size() == 0)) {
+                    polytomy_nodes.push_back(l2->identifier);
+                }
+            }
+
+            if (polytomy_nodes.size() > 1) {
+                std::string new_node_name = "node_" + std::to_string(1+condensed_nodes.size()) + "_condensed_" + std::to_string(polytomy_nodes.size()) + "_leaves";
+                auto curr_node = condensed_T.get_node(l1->identifier);
+                condensed_T.create_node(new_node_name, new_node_name, curr_node->parent->identifier, l1->branch_length);
+                auto new_node = condensed_T.get_node(new_node_name);
+                condensed_node_mutations.insert(std::pair<Node*, std::vector<mutation>>(new_node, std::vector<mutation>(0)));
+                condensed_nodes[new_node_name] = std::vector<std::string>(polytomy_nodes.size());
+
+                for (size_t it = 0; it < polytomy_nodes.size(); it++) {
+                    condensed_nodes[new_node_name][it] = polytomy_nodes[it];
+                    condensed_T.remove_node(polytomy_nodes[it]);
+                }
+            }
+        }
+        fprintf(stderr, "Printing condensed tree. \n");
+        fprintf(stdout, "%s\n", get_newick_string(condensed_T, true, true).c_str());
     }
 
     fprintf(stderr, "Printing final tree. \n");
     fprintf(stdout, "%s\n", get_newick_string(T, true, true).c_str());
+
+    if (print_uncondensed_tree) {
+        fprintf(stderr, "Printing uncondensed final tree. \n");
+        if (!collapse_tree && (condensed_nodes.size() > 0)) {
+            Tree T_to_print = create_tree_from_newick_string(get_newick_string(T, false, true)); 
+            for (auto cn: condensed_nodes) {
+                auto n = T_to_print.get_node(cn.first);
+                auto par = (n->parent != NULL) ? n->parent : n;
+                for (auto c: cn.second) {
+                    T_to_print.create_node(c, c, par->identifier, n->branch_length);
+                }
+                if (par != n) {
+                    T_to_print.remove_node(n->identifier);
+                }
+            }
+            fprintf(stdout, "%s\n", get_newick_string(T_to_print, true, true).c_str());
+        }
+        else {
+            fprintf(stdout, "%s\n", get_newick_string(T, true, true).c_str());
+        }
+    }
     
     if (missing_samples.size() > 0) {
         fprintf(stderr, "Printing mutation paths in the new tree for missing samples.\n");  
@@ -585,7 +682,7 @@ int main(int argc, char** argv){
         }
     }
 
-    if (print_subtrees_size > 1) {
+    if ((print_subtrees_size > 1) && (missing_samples.size() > 0)) {
         fprintf(stderr, "Printing subtrees for display. \n");
         std::vector<bool> displayed_mising_sample (missing_samples.size(), false);
         
@@ -655,21 +752,53 @@ int main(int argc, char** argv){
         fprintf(stderr, "Saving assignments. \n");
 
         Parsimony::data data;
-        data.set_newick(get_newick_string(T, false, true));
-        
-        auto dfs = T.depth_first_expansion();
 
-        for (size_t idx = 0; idx < dfs.size(); idx++) {
-            auto mutation_list = data.add_node_mutations();
-            auto mutations = node_mutations[dfs[idx]];
-            for (auto m: mutations) {
-                auto mut = mutation_list->add_mutation();
-                mut->set_position(m.position);
-                mut->set_ref_nuc(m.ref_nuc);
-                mut->set_par_nuc(m.par_nuc);
-                mut->clear_mut_nuc();
-                for (auto nuc: m.mut_nuc) {
-                    mut->add_mut_nuc(nuc);
+        if (!collapse_tree) {
+            data.set_newick(get_newick_string(T, false, true));
+
+            auto dfs = T.depth_first_expansion();
+
+            for (size_t idx = 0; idx < dfs.size(); idx++) {
+                auto mutation_list = data.add_node_mutations();
+                auto mutations = node_mutations[dfs[idx]];
+                for (auto m: mutations) {
+                    auto mut = mutation_list->add_mutation();
+                    mut->set_position(m.position);
+                    mut->set_ref_nuc(m.ref_nuc);
+                    mut->set_par_nuc(m.par_nuc);
+                    mut->clear_mut_nuc();
+                    for (auto nuc: m.mut_nuc) {
+                        mut->add_mut_nuc(nuc);
+                    }
+                }
+            }
+        }
+        else {
+            data.set_newick(get_newick_string(condensed_T, false, true));
+
+            auto dfs = condensed_T.depth_first_expansion();
+
+            for (size_t idx = 0; idx < dfs.size(); idx++) {
+                auto mutation_list = data.add_node_mutations();
+                auto mutations = condensed_node_mutations[dfs[idx]];
+                for (auto m: mutations) {
+                    auto mut = mutation_list->add_mutation();
+                    mut->set_position(m.position);
+                    mut->set_ref_nuc(m.ref_nuc);
+                    mut->set_par_nuc(m.par_nuc);
+                    mut->clear_mut_nuc();
+                    for (auto nuc: m.mut_nuc) {
+                        mut->add_mut_nuc(nuc);
+                    }
+                }
+            }
+
+            // Add condensed nodes
+            for (auto cn: condensed_nodes) {
+                auto cn_ptr = data.add_condensed_nodes();
+                cn_ptr->set_node_name(cn.first);
+                for (auto l: cn.second) {
+                    cn_ptr->add_condensed_leaves(l);
                 }
             }
         }
