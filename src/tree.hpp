@@ -13,15 +13,14 @@ class Node {
         size_t level;
         float branch_length;
         std::string identifier;
-        std::string tag;
         Node* parent;
         std::vector<Node*> children;
 
         bool is_leaf();
         bool is_root();
         Node();
-        Node(std::string id, std::string t, float l);
-        Node(std::string id, std::string t, Node* p, float l);
+        Node(std::string id, float l);
+        Node(std::string id, Node* p, float l);
 };
 
 class Tree {
@@ -36,7 +35,6 @@ class Tree {
             all_nodes.clear();
         }
         
-        //TODO
         Tree (Node* n);
 
         size_t max_level;
@@ -44,10 +42,11 @@ class Tree {
 
         size_t curr_internal_node;
         size_t get_max_level ();
+        void rename_node(std::string old_nid, std::string new_nid);
         std::vector<Node*> get_leaves();
         std::vector<Node*> get_leaves(std::string nid);
-        void create_node (std::string identifier, std::string tag, float branch_length = -1.0);
-        void create_node (std::string identifier, std::string tag, std::string parent_id, float branch_length = -1.0);
+        void create_node (std::string identifier, float branch_length = -1.0);
+        void create_node (std::string identifier, std::string parent_id, float branch_length = -1.0);
         Node* get_node (std::string identifier);
         bool is_ancestor (std::string anc_id, std::string nid);
         std::vector<Node*> rsearch (std::string nid);

@@ -11,22 +11,19 @@ bool Node::is_root() {
 Node::Node() {
     level = 0;
     identifier = "";
-    tag = "";
     parent = NULL;
     branch_length = -1.0;
 }
 
-Node::Node (std::string id, std::string t, float len) {
+Node::Node (std::string id, float len) {
     identifier = id;
-    tag = t;
     parent = NULL;
     level = 1;
     branch_length = len;
 }
 
-Node::Node (std::string id, std::string t, Node* p, float len) {
+Node::Node (std::string id, Node* p, float len) {
     identifier = id;
-    tag = t;
     parent = p;
     level = p->level + 1;
     branch_length = len;
@@ -34,6 +31,19 @@ Node::Node (std::string id, std::string t, Node* p, float len) {
 
 size_t Tree::get_max_level () {
     return max_level;
+}
+        
+void Tree::rename_node(std::string old_nid, std::string new_nid) {
+    Node* n = get_node(old_nid);
+    if (n != NULL) {
+        n->identifier = new_nid;
+        all_nodes.erase(old_nid);
+        all_nodes[new_nid] = n;
+    }
+    else {
+        fprintf(stderr, "ERROR: %s not found in the Tree!\n", old_nid.c_str());
+        exit(1);
+    }
 }
 
 std::vector<Node*> Tree::get_leaves() {
@@ -65,17 +75,17 @@ std::vector<Node*> Tree::get_leaves(std::string nid) {
     return leaves;
 }
 
-void Tree::create_node (std::string identifier, std::string tag, float branch_len) {
+void Tree::create_node (std::string identifier, float branch_len) {
     all_nodes.clear();
     max_level = 1;
-    Node* n = new Node(identifier, tag, branch_len);
+    Node* n = new Node(identifier, branch_len);
     root = n;
     all_nodes[identifier] = root;
 }
 
-void Tree::create_node (std::string identifier, std::string tag, std::string parent_id, float branch_len) {
+void Tree::create_node (std::string identifier, std::string parent_id, float branch_len) {
     Node* par = all_nodes[parent_id];
-    Node* n = new Node(identifier, tag, par, branch_len);
+    Node* n = new Node(identifier, par, branch_len);
     if (all_nodes.find(identifier) != all_nodes.end()) {
         fprintf(stderr, "Error: %s already in the tree!\n", identifier.c_str());
         exit(1);
@@ -469,16 +479,16 @@ Tree create_tree_from_newick_string (std::string newick_string) {
         for (size_t j=0; j<no; j++) {
             std::string nid = std::to_string(++T.curr_internal_node);
             if (parent_stack.size() == 0) {
-                T.create_node(nid, nid, branch_len.top());
+                T.create_node(nid, branch_len.top());
                 branch_len.pop();
             }
             else {
-                T.create_node(nid, nid, parent_stack.top(), branch_len.top());
+                T.create_node(nid, parent_stack.top(), branch_len.top());
                 branch_len.pop();
             }
             parent_stack.push(nid);
         }
-        T.create_node(leaf, leaf, parent_stack.top(), branch_len.top());
+        T.create_node(leaf, parent_stack.top(), branch_len.top());
         branch_len.pop();
         for (size_t j=0; j<nc; j++) {
             parent_stack.pop();

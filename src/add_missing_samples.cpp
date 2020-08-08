@@ -119,6 +119,8 @@ int main(int argc, char** argv){
         return 1;
     }
 
+    Timer timer; 
+
     omp_set_num_threads(num_threads);
     omp_lock_t omplock;
     omp_init_lock(&omplock);
@@ -164,6 +166,7 @@ int main(int argc, char** argv){
         }
 
         fprintf(stderr, "Computing parsimonious assignments for input variants.\n"); 
+        timer.Start();
 
         tbb::task_scheduler_init init(num_threads);
 
@@ -232,9 +235,12 @@ int main(int argc, char** argv){
                 }, true );
         tbb::flow::make_edge(reader, mapper);
         mapper_graph.wait_for_all();
+
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
     }
     else if (din_filename != "") {
         fprintf(stderr, "Loading existing assignments\n");
+        timer.Start();
         
         Parsimony::data data;
 
@@ -272,7 +278,12 @@ int main(int argc, char** argv){
             }
         }
         
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
+        
+        
         fprintf(stderr, "Loading VCF file\n");
+        timer.Start();
+
         std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
         boost::iostreams::filtering_istream instream;
         try {
@@ -336,6 +347,7 @@ int main(int argc, char** argv){
                 }
             }
         }
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
     }
     else {
         fprintf(stderr, "Error! No input tree or assignment file provided!\n");
@@ -350,7 +362,7 @@ int main(int argc, char** argv){
         fprintf(stderr, "Adding missing samples to the tree.\n");  
         
         for (size_t s=0; s<missing_samples.size(); s++) {
-            // timerSStart();
+             timer.Start();
             auto sample = missing_samples[s];
 
             auto dfs = T.depth_first_expansion();
@@ -382,46 +394,14 @@ int main(int argc, char** argv){
                 mapper2_body(inp);
             }
             
-            //            size_t curr = 0;
-            //
-            //            tbb::flow::graph mapper_graph2;
-            //
-            //            tbb::flow::function_node<mapper2_input, int> mapper2(mapper_graph2, tbb::flow::unlimited, mapper2_body());
-            //            tbb::flow::source_node <mapper2_input> splitter (mapper_graph2,
-            //                    [&] (mapper2_input &inp) -> bool {
-            //                    TIMEIT();
-            //                    curr += 1;
-            //                    inp.missing_sample = sample;
-            //                    inp.T = &T;
-            //                    inp.node = dfs[curr-1];
-            //                    inp.node_mutations = &node_mutations;
-            //                    inp.missing_sample_mutations = &missing_sample_mutations[s];
-            //                    inp.excess_mutations = &node_excess_mutations[curr-1];
-            //                    inp.best_level = &best_level;
-            //                    inp.best_set_difference = &best_set_difference;
-            //                    inp.best_node = &best_node;
-            //                    inp.best_j =  &best_j;
-            //                    inp.j = curr-1;
-            //                    if (curr <= total_nodes) {
-            //                        return true;
-            //                    }
-            //                    else {
-            //                        return false;
-            //                    }
-            //                    }, true );
-            //
-            //            tbb::flow::make_edge(splitter, mapper2);
-            //            mapper_graph2.wait_for_all();
-            
-            
             fprintf(stderr, "Current tree size (#nodes): %zu\tMissing sample: %s\tParsimony score: %d\n", total_nodes, sample.c_str(), \
                     best_set_difference);
 
             if (T.get_node(sample) == NULL) {
                 if (best_node->is_leaf()) {
                     std::string nid = std::to_string(++T.curr_internal_node);
-                    T.create_node(nid, nid, best_node->parent->identifier);
-                    T.create_node(sample, sample, nid);
+                    T.create_node(nid, best_node->parent->identifier);
+                    T.create_node(sample, nid);
                     T.move_node(best_node->identifier, nid);
                     std::vector<mutation> common_mut, l1_mut, l2_mut;
                     std::vector<mutation> curr_l1_mut;
@@ -494,7 +474,7 @@ int main(int argc, char** argv){
                     }
                 }
                 else {
-                    T.create_node(sample, sample, best_node->identifier);
+                    T.create_node(sample, best_node->identifier);
                     Node* node = T.get_node(sample);
                     std::vector<mutation> node_mut;
                     for (auto mut: node_excess_mutations[best_j]) {
@@ -523,13 +503,14 @@ int main(int argc, char** argv){
                 fprintf(stderr, "\n");
             }
 
-            // fprintf(stderr, "Completed in %ld msec \n", timer.Stop());
+            fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
         }
 
     }
 
     if (collapse_tree) {
         fprintf(stderr, "Collapsing final tree. \n");
+        timer.Start();
 
         bfs.clear();
         bfs = T.breadth_first_expansion();
@@ -547,7 +528,11 @@ int main(int argc, char** argv){
         }
         
         condensed_T = create_tree_from_newick_string(get_newick_string(T, false, true));
+        
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
+        
         fprintf(stderr, "Condensing identical sequences. \n");
+        timer.Start();
 
         bfs.clear();
         bfs = T.breadth_first_expansion();
@@ -591,7 +576,7 @@ int main(int argc, char** argv){
             if (polytomy_nodes.size() > 1) {
                 std::string new_node_name = "node_" + std::to_string(1+condensed_nodes.size()) + "_condensed_" + std::to_string(polytomy_nodes.size()) + "_leaves";
                 auto curr_node = condensed_T.get_node(l1->identifier);
-                condensed_T.create_node(new_node_name, new_node_name, curr_node->parent->identifier, l1->branch_length);
+                condensed_T.create_node(new_node_name, curr_node->parent->identifier, l1->branch_length);
                 auto new_node = condensed_T.get_node(new_node_name);
                 condensed_node_mutations.insert(std::pair<Node*, std::vector<mutation>>(new_node, std::vector<mutation>(0)));
                 condensed_nodes[new_node_name] = std::vector<std::string>(polytomy_nodes.size());
@@ -602,6 +587,8 @@ int main(int argc, char** argv){
                 }
             }
         }
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
+        
         fprintf(stderr, "Printing condensed tree. \n");
         fprintf(stdout, "%s\n", get_newick_string(condensed_T, true, true).c_str());
     }
@@ -611,16 +598,26 @@ int main(int argc, char** argv){
 
     if (print_uncondensed_tree) {
         fprintf(stderr, "Printing uncondensed final tree. \n");
+        
+        timer.Start();
+        
         if (!collapse_tree && (condensed_nodes.size() > 0)) {
             Tree T_to_print = create_tree_from_newick_string(get_newick_string(T, false, true)); 
-            for (auto cn: condensed_nodes) {
-                auto n = T_to_print.get_node(cn.first);
+            for (size_t it = 0; it < condensed_nodes.size(); it++) {
+                auto cn = condensed_nodes.begin();
+                std::advance(cn, it);
+
+                auto n = T_to_print.get_node(cn->first);
                 auto par = (n->parent != NULL) ? n->parent : n;
-                for (auto c: cn.second) {
-                    T_to_print.create_node(c, c, par->identifier, n->branch_length);
+
+                size_t num_samples = cn->second.size();
+
+                if (num_samples > 0) {
+                    T_to_print.rename_node(n->identifier, cn->second[0]);
                 }
-                if (par != n) {
-                    T_to_print.remove_node(n->identifier);
+                
+                for (size_t s = 1; s < num_samples; s++) {
+                    T_to_print.create_node(cn->second[s], par->identifier, n->branch_length);
                 }
             }
             fprintf(stdout, "%s\n", get_newick_string(T_to_print, true, true).c_str());
@@ -628,10 +625,14 @@ int main(int argc, char** argv){
         else {
             fprintf(stdout, "%s\n", get_newick_string(T, true, true).c_str());
         }
+        
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
     }
     
     if (missing_samples.size() > 0) {
         fprintf(stderr, "Printing mutation paths in the new tree for missing samples.\n");  
+
+        timer.Start();
         
         for (size_t s=0; s<missing_samples.size(); s++) {
             auto sample = missing_samples[s];
@@ -680,10 +681,14 @@ int main(int argc, char** argv){
             }
             fprintf(stderr, "\n"); 
         }
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
     }
 
     if ((print_subtrees_size > 1) && (missing_samples.size() > 0)) {
         fprintf(stderr, "Printing subtrees for display. \n");
+
+        timer.Start();
+        
         std::vector<bool> displayed_mising_sample (missing_samples.size(), false);
         
         for (size_t i = 0; i < missing_samples.size(); i++) {
@@ -746,10 +751,13 @@ int main(int argc, char** argv){
                 break;
             }
         }
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
     }
 
     if (dout_filename != "") {
         fprintf(stderr, "Saving assignments. \n");
+
+        timer.Start();
 
         Parsimony::data data;
 
@@ -806,6 +814,8 @@ int main(int argc, char** argv){
         std::ofstream outfile(dout_filename, std::ios::out | std::ios::binary);
         data.SerializeToOstream(&outfile);
         outfile.close();
+        
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
     }
     
     google::protobuf::ShutdownProtobufLibrary();
