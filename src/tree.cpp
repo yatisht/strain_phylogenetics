@@ -387,7 +387,7 @@ void split (std::string s, char delim, std::vector<std::string>& words) {
     std::string curr = "";
     for (auto c: s) {
         if (c == delim) {
-            words.push_back(curr);
+            words.push_back(std::move(curr));
             curr = "";
         }
         else {
@@ -395,7 +395,7 @@ void split (std::string s, char delim, std::vector<std::string>& words) {
         }
     }
     if (curr != "") {
-        words.push_back(curr);
+        words.push_back(std::move(curr));
     }
 }
 
@@ -409,7 +409,7 @@ void split (std::string s, std::vector<std::string>& words) {
     std::string word;
     // Traverse through all words
     while (ss >> word) {
-        words.push_back(word);
+        words.push_back(std::move(word));
     };
 }
 
@@ -457,7 +457,7 @@ Tree create_tree_from_newick_string (std::string newick_string) {
                 }
             }
         }
-        leaves.push_back(leaf);
+        leaves.push_back(std::move(leaf));
         num_open.push_back(no);
         num_close.push_back(nc);
         float len = (branch.size() > 0) ? std::stof(branch) : -1.0;
