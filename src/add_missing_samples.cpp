@@ -583,7 +583,7 @@ int main(int argc, char** argv){
 
                 for (size_t it = 0; it < polytomy_nodes.size(); it++) {
                     condensed_nodes[new_node_name][it] = polytomy_nodes[it];
-                    condensed_T.remove_node(polytomy_nodes[it]);
+                    condensed_T.remove_node(polytomy_nodes[it], false);
                 }
             }
         }
@@ -727,7 +727,7 @@ int main(int argc, char** argv){
                             }
                         }
                         else {
-                            new_T.remove_node(curr_sibling->identifier);
+                            new_T.remove_node(curr_sibling->identifier, true);
                             num_leaves -= sibling_leaves.size();
                             if (num_leaves == print_subtrees_size) {
                                 break;

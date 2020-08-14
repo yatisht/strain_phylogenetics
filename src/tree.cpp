@@ -126,7 +126,7 @@ std::vector<Node*> Tree::rsearch (std::string nid) {
     return ancestors;
 }
 
-void Tree::remove_node_helper (std::string nid) { 
+void Tree::remove_node_helper (std::string nid, bool move_level) { 
     auto it = all_nodes.find(nid);
     Node* source = it->second;
     Node* curr_parent = source->parent;
@@ -139,10 +139,10 @@ void Tree::remove_node_helper (std::string nid) {
 
         // Remove parent if it no longer has any children
         if (curr_parent->children.size() == 0) {
-            remove_node_helper (curr_parent->identifier);
+            remove_node_helper (curr_parent->identifier, move_level);
         }
         // Move the remaining child one level up if it is the only child of its parent 
-        else if (curr_parent->children.size() == 1) {
+        else if (move_level && (curr_parent->children.size() == 1)) {
             auto child = curr_parent->children[0];
             if (curr_parent->parent != NULL) {
                 child->parent = curr_parent->parent;
@@ -190,8 +190,8 @@ void Tree::remove_node_helper (std::string nid) {
     }
 }
 
-void Tree::remove_node (std::string nid) { 
-    remove_node_helper (nid);
+void Tree::remove_node (std::string nid, bool move_level) { 
+    remove_node_helper (nid, move_level);
 
     // Update max level
     size_t new_max_level = 0;
@@ -217,7 +217,7 @@ void Tree::move_node (std::string source_id, std::string dest_id) {
     auto iter = std::find(curr_parent->children.begin(), curr_parent->children.end(), source);
     curr_parent->children.erase(iter);
     if (curr_parent->children.size() == 0) {
-        remove_node(curr_parent->identifier);
+        remove_node(curr_parent->identifier, true);
     }
     
     // Update levels of source descendants

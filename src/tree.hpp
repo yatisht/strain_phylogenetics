@@ -25,7 +25,7 @@ class Node {
 
 class Tree {
     private:
-        void remove_node_helper (std::string nid);
+        void remove_node_helper (std::string nid, bool move_level);
         void depth_first_expansion_helper(Node* node, std::vector<Node*>& vec);
         std::unordered_map <std::string, Node*> all_nodes;
     public:
@@ -50,7 +50,7 @@ class Tree {
         Node* get_node (std::string identifier);
         bool is_ancestor (std::string anc_id, std::string nid);
         std::vector<Node*> rsearch (std::string nid);
-        void remove_node (std::string nid);
+        void remove_node (std::string nid, bool move_level);
         void move_node (std::string source, std::string destination);
         std::vector<Node*> breadth_first_expansion();
         std::vector<Node*> breadth_first_expansion(std::string nid);
