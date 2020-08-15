@@ -68,6 +68,8 @@ struct mapper2_input {
     size_t* best_j;
     Node** best_node;
 
+    bool* has_unique;
+
     std::vector<mutation>* excess_mutations;
     std::vector<mutation>* imputed_mutations;
 };

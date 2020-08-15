@@ -156,10 +156,9 @@ int mapper_body::operator()(mapper_input input) {
     return 1;
 }
 
-//int mapper2_body::operator()(mapper2_input input) {
 int mapper2_body(mapper2_input& input) {
-//    TIMEIT();
-    
+    //    TIMEIT();
+
     int set_difference = 0;
     int best_set_difference = *input.best_set_difference;
 
@@ -167,10 +166,13 @@ int mapper2_body(mapper2_input& input) {
     std::vector<int> anc_positions;
     std::vector<mutation> ancestral_mutations;
 
-    if (input.node->is_leaf()) {
+    bool has_unique = false;
+
+    if (!input.node->is_root()) {
         if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
             for (auto m1: (*input.node_mutations)[input.node]) {
                 auto anc_nuc = m1.mut_nuc[0];
+                bool found = false;
                 for (auto m2: (*input.missing_sample_mutations)) {
                     if (m1.position == m2.position) {
                         for (auto nuc: m2.mut_nuc) {
@@ -187,10 +189,14 @@ int mapper2_body(mapper2_input& input) {
                                 if (m2.mut_nuc.size() > 1) {
                                     (*input.imputed_mutations).emplace_back(m);
                                 }
+                                found = true;
                                 break;
                             }
                         }
                     }
+                }
+                if (!found) {
+                    has_unique = true;
                 }
             }
         }
@@ -214,6 +220,7 @@ int mapper2_body(mapper2_input& input) {
             }
         }
     }
+
     for (auto m1: (*input.missing_sample_mutations)) {
         bool found_pos = false;
         bool found = false;
@@ -311,6 +318,7 @@ int mapper2_body(mapper2_input& input) {
         *input.best_node = input.node;
         *input.best_level = input.node->level;
         *input.best_j = input.j;
+        *input.has_unique = has_unique;
     }
     else if (set_difference == *input.best_set_difference) {
         if (input.node->level < *input.best_level) {
@@ -318,6 +326,7 @@ int mapper2_body(mapper2_input& input) {
             *input.best_node = input.node;
             *input.best_level = input.node->level;
             *input.best_j = input.j;
+            *input.has_unique = has_unique;
         }
     }
 

@@ -374,6 +374,7 @@ int main(int argc, char** argv){
             size_t best_level = 1e9;
             int best_set_difference = 1e9;
             size_t best_j = 0;
+            bool best_node_has_unique = false;
             Node* best_node = NULL;
 
 #pragma omp parallel for
@@ -390,6 +391,7 @@ int main(int argc, char** argv){
                 inp.best_node = &best_node;
                 inp.best_j =  &best_j;
                 inp.j = k;
+                inp.has_unique = &best_node_has_unique;
 
                 mapper2_body(inp);
             }
@@ -398,7 +400,7 @@ int main(int argc, char** argv){
                     best_set_difference);
 
             if (T.get_node(sample) == NULL) {
-                if (best_node->is_leaf()) {
+                if (best_node->is_leaf() || best_node_has_unique) {
                     std::string nid = std::to_string(++T.curr_internal_node);
                     T.create_node(nid, best_node->parent->identifier);
                     T.create_node(sample, nid);
