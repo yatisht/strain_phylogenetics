@@ -322,8 +322,10 @@ int main(int argc, char** argv){
                 std::vector<std::string> alleles;
                 alleles.clear();
                 split(words[4], ',', alleles);
-                for (auto j: missing_idx) {
-                    auto iter = std::find(missing_samples.begin(), missing_samples.end(), variant_ids[j-9]);
+                for (size_t k = 0; k < missing_idx.size(); k++) {
+                    size_t j = missing_idx[k];
+                    auto iter = missing_samples.begin();
+                    std::advance(iter, k);
                     if (iter != missing_samples.end()) {
                         auto mutations_iter = missing_sample_mutations.begin() + (iter - missing_samples.begin());
                         mutation m;
