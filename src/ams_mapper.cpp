@@ -173,8 +173,10 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
             for (auto m1: (*input.node_mutations)[input.node]) {
                 auto anc_nuc = m1.mut_nuc[0];
                 bool found = false;
+                bool found_pos = false;
                 for (auto m2: (*input.missing_sample_mutations)) {
                     if (m1.position == m2.position) {
+                        found_pos = true;
                         for (auto nuc: m2.mut_nuc) {
                             if (nuc == anc_nuc) {
                                 mutation m;
@@ -196,7 +198,20 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
                     }
                 }
                 if (!found) {
-                    has_unique = true;
+                    if (!found_pos && (anc_nuc == m1.ref_nuc)) {
+                        mutation m;
+                        m.position = m1.position;
+                        m.ref_nuc = m1.ref_nuc;
+                        m.par_nuc = m1.par_nuc;
+                        m.mut_nuc.emplace_back(anc_nuc);
+
+                        ancestral_mutations.emplace_back(m);
+                        anc_positions.emplace_back(m1.position);
+                        (*input.excess_mutations).emplace_back(m);
+                    }
+                    else {
+                        has_unique = true;
+                    }
                 }
             }
         }
@@ -287,9 +302,11 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
 
     for (auto m1: ancestral_mutations) {
         bool found = false;
+        bool found_pos = false;
         auto anc_nuc = m1.mut_nuc[0];
         for (auto m2: (*input.missing_sample_mutations)) {
             if (m1.position == m2.position) {
+                found_pos = true;
                 for (auto nuc: m2.mut_nuc) {
                     if (nuc == anc_nuc) {
                         found = true;
@@ -297,7 +314,11 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
                 }
             }
         }
-        if (!found && (anc_nuc != m1.ref_nuc)) {
+        if (found) {
+        }
+        else if (!found_pos && (anc_nuc == m1.ref_nuc)) {
+        }
+        else {
             set_difference += 1;
             if (set_difference > best_set_difference) {
                 return 1;
