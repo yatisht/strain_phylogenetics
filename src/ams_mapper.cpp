@@ -156,7 +156,7 @@ int mapper_body::operator()(mapper_input input) {
     return 1;
 }
 
-int mapper2_body(mapper2_input& input) {
+int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
     //    TIMEIT();
 
     int set_difference = 0;
@@ -311,7 +311,7 @@ int mapper2_body(mapper2_input& input) {
         }
     }
 
-    data_lock.lock();
+    omp_set_lock(&omplock);
 
     if (set_difference < *input.best_set_difference) {
         *input.best_set_difference = set_difference;
@@ -330,7 +330,7 @@ int mapper2_body(mapper2_input& input) {
         }
     }
 
-    data_lock.unlock();
+    omp_unset_lock(&omplock);
 
     return 1;
 }

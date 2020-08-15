@@ -8,7 +8,6 @@
 #include <tbb/scalable_allocator.h>
 #include <tbb/task_scheduler_init.h>
 #include "ams_graph.hpp"
-#include <omp.h>
 #include "parsimony.pb.h"
 
 namespace po = boost::program_options;
@@ -121,8 +120,8 @@ int main(int argc, char** argv){
 
     Timer timer; 
 
-    omp_set_num_threads(num_threads);
     omp_lock_t omplock;
+    omp_set_num_threads(num_threads);
     omp_init_lock(&omplock);
 
 #if SAVE_PROFILE == 1
@@ -393,7 +392,7 @@ int main(int argc, char** argv){
                 inp.j = k;
                 inp.has_unique = &best_node_has_unique;
 
-                mapper2_body(inp);
+                mapper2_body(inp, omplock);
             }
             
             fprintf(stderr, "Current tree size (#nodes): %zu\tMissing sample: %s\tParsimony score: %d\n", total_nodes, sample.c_str(), \
@@ -426,12 +425,6 @@ int main(int argc, char** argv){
                             if (m1.position == m2.position) {
                                 if (m1.mut_nuc[0] == m2.mut_nuc[0]) {
                                     found = true;
-                                    mutation m;
-                                    m.position = m1.position;
-                                    m.ref_nuc = m1.ref_nuc;
-                                    m.par_nuc = m1.par_nuc;
-                                    m.mut_nuc.emplace_back(m1.mut_nuc[0]);
-                                    common_mut.emplace_back(m);
                                     break;
                                 }
                             }
@@ -451,6 +444,12 @@ int main(int argc, char** argv){
                             if (m1.position == m2.position) {
                                 if (m1.mut_nuc[0] == m2.mut_nuc[0]) {
                                     found = true;
+                                    mutation m;
+                                    m.position = m1.position;
+                                    m.ref_nuc = m1.ref_nuc;
+                                    m.par_nuc = m1.par_nuc;
+                                    m.mut_nuc.emplace_back(m1.mut_nuc[0]);
+                                    common_mut.emplace_back(m);
                                     break;
                                 }
                             }
@@ -479,15 +478,40 @@ int main(int argc, char** argv){
                     T.create_node(sample, best_node->identifier);
                     Node* node = T.get_node(sample);
                     std::vector<mutation> node_mut;
-                    for (auto mut: node_excess_mutations[best_j]) {
-                        mutation m;
-                        m.position = mut.position;
-                        m.ref_nuc = mut.ref_nuc;
-                        m.par_nuc = mut.par_nuc;
-                        for (auto nuc: mut.mut_nuc) {
-                            m.mut_nuc.emplace_back(nuc);
+                    
+                    std::vector<mutation> curr_l1_mut;
+
+                    if (node_mutations.find(best_node) != node_mutations.end()) {
+                        for (auto m1: node_mutations[best_node]) {
+                            mutation m;
+                            m.position = m1.position;
+                            m.ref_nuc = m1.ref_nuc;
+                            m.par_nuc = m1.par_nuc;
+                            m.mut_nuc.emplace_back(m1.mut_nuc[0]);
+                            curr_l1_mut.emplace_back(m);
                         }
-                        node_mut.emplace_back(m);
+                    }
+
+                    for (auto m1: node_excess_mutations[best_j]) {
+                        bool found = false;
+                        for (auto m2: curr_l1_mut) {
+                            if (m1.position == m2.position) {
+                                if (m1.mut_nuc[0] == m2.mut_nuc[0]) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!found) {
+                            mutation m;
+                            m.position = m1.position;
+                            m.ref_nuc = m1.ref_nuc;
+                            m.par_nuc = m1.par_nuc;
+                            for (auto nuc: m1.mut_nuc) {
+                                m.mut_nuc.emplace_back(nuc);
+                            }
+                            node_mut.emplace_back(m);
+                        }
                     }
                     node_mutations[node] = node_mut;
                 }

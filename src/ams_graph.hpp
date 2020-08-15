@@ -1,4 +1,5 @@
 #include "tree.hpp"
+#include <omp.h>
 #include <set>
 #include <mutex>
 #include <sys/time.h>
@@ -78,4 +79,4 @@ struct mapper2_input {
 //    int operator()(mapper2_input input);
 //};
 
-int mapper2_body(mapper2_input& inp);
+int mapper2_body(mapper2_input& inp, omp_lock_t& omplock);
