@@ -250,6 +250,7 @@ int main(int argc, char** argv){
         T = create_tree_from_newick_string(data.newick());
 
         auto dfs = T.depth_first_expansion();
+        std::vector<std::string> condensed_leaves;
 
         for (size_t idx = 0; idx < dfs.size(); idx++) {
             auto mutation_list = data.node_mutations(idx);
@@ -274,6 +275,7 @@ int main(int argc, char** argv){
             condensed_nodes.insert(std::pair<std::string, std::vector<std::string>>(cn.node_name(), std::vector<std::string>(cn.condensed_leaves_size())));
             for (int k = 0; k < cn.condensed_leaves_size(); k++) {
                 condensed_nodes[cn.node_name()][k] =cn.condensed_leaves(k);
+                condensed_leaves.push_back(cn.condensed_leaves(k));
             }
         }
         
@@ -304,7 +306,7 @@ int main(int argc, char** argv){
                 if (words[1] == "POS") {
                     for (size_t j=9; j < words.size(); j++) {
                         variant_ids.emplace_back(words[j]);
-                        if (T.get_node(words[j]) == NULL) {
+                        if ((T.get_node(words[j]) == NULL) && (std::find(condensed_leaves.begin(), condensed_leaves.end(), words[j]) == condensed_leaves.end())) {
                             missing_samples.emplace_back(words[j]);
                             num_missing++;
                             missing_idx.emplace_back(j);
