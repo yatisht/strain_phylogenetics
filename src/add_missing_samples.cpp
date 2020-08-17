@@ -311,6 +311,9 @@ int main(int argc, char** argv){
                             num_missing++;
                             missing_idx.emplace_back(j);
                         }
+                        else {
+                            fprintf(stderr, "WARNING: Ignoring sample %s as it is already in the tree.\n", words[j].c_str());
+                        }
                     }
                     missing_sample_mutations.resize(num_missing);
                     header_found = true;
