@@ -167,10 +167,12 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
     std::vector<mutation> ancestral_mutations;
 
     bool has_unique = false;
+    bool node_has_mut = false;
 
     if (!input.node->is_root()) {
         if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
             for (auto m1: (*input.node_mutations)[input.node]) {
+                node_has_mut = true;
                 auto anc_nuc = m1.mut_nuc[0];
                 bool found = false;
                 bool found_pos = false;
@@ -339,15 +341,19 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
         *input.best_node = input.node;
         *input.best_level = input.node->level;
         *input.best_j = input.j;
+        *input.num_best = 1;
         *input.has_unique = has_unique;
     }
     else if (set_difference == *input.best_set_difference) {
-        if (input.node->level < *input.best_level) {
+        if ((input.node->level < *input.best_level) || ((input.node->level == *input.best_level) && (*input.best_j > input.j))) {
             *input.best_set_difference = set_difference;
             *input.best_node = input.node;
             *input.best_level = input.node->level;
             *input.best_j = input.j;
             *input.has_unique = has_unique;
+        }
+        if (node_has_mut && has_unique) {
+            *input.num_best += 1;
         }
     }
 

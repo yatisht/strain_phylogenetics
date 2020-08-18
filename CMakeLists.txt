@@ -37,6 +37,11 @@ add_executable(add_missing_samples
     src/add_missing_samples.cpp
     )
 
+add_executable(find_sister_clades
+    src/tree.cpp
+    src/find_sister_clades.cpp
+    )
+
 protobuf_generate(
     LANGUAGE cpp
     TARGET add_missing_samples 
@@ -52,4 +57,6 @@ else(SAVE_PROFILE)
 endif(SAVE_PROFILE)
 
 TARGET_LINK_LIBRARIES(add_missing_samples PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS} ${Protobuf_LIBRARIES} OpenMP::OpenMP_CXX)
+
+TARGET_LINK_LIBRARIES(find_sister_clades PRIVATE stdc++  ${Boost_LIBRARIES} OpenMP::OpenMP_CXX)
 

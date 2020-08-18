@@ -1,6 +1,7 @@
 #include "tree.hpp"
 #include <omp.h>
 #include <set>
+#include <unordered_set>
 #include <mutex>
 #include <sys/time.h>
 #include "Instrumentor.h"
@@ -67,6 +68,7 @@ struct mapper2_input {
     size_t* best_level;
     size_t j;
     size_t* best_j;
+    size_t* num_best;
     Node** best_node;
 
     bool* has_unique;
