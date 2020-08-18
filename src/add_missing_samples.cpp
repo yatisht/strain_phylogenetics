@@ -104,7 +104,7 @@ int main(int argc, char** argv){
         po::notify(vm);
     }
     catch(std::exception &e){
-        std::cout << desc << std::endl;
+        std::cerr << desc << std::endl;
         return 1;
     }
 
