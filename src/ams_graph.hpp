@@ -4,6 +4,7 @@
 #include <unordered_set>
 #include <mutex>
 #include <sys/time.h>
+#include <tbb/mutex.h>
 #include "Instrumentor.h"
 
 #if SAVE_PROFILE == 1
@@ -12,7 +13,7 @@
 #  define TIMEIT()
 #endif
 
-extern std::mutex data_lock;
+//extern std::mutex data_lock;
 
 class Timer {
     private:
@@ -71,14 +72,14 @@ struct mapper2_input {
     size_t* num_best;
     Node** best_node;
 
+#if DEBUG == 1
+    std::vector<size_t>* best_j_vec;
+#endif
+    
     bool* has_unique;
 
     std::vector<mutation>* excess_mutations;
     std::vector<mutation>* imputed_mutations;
 };
 
-//struct mapper2_body {
-//    int operator()(mapper2_input input);
-//};
-
-int mapper2_body(mapper2_input& inp, omp_lock_t& omplock);
+void mapper2_body(mapper2_input& inp);

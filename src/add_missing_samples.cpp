@@ -1,4 +1,5 @@
 #include <fstream>
+#include <algorithm>
 #include <boost/program_options.hpp> 
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -7,6 +8,8 @@
 #include <tbb/reader_writer_lock.h>
 #include <tbb/scalable_allocator.h>
 #include <tbb/task_scheduler_init.h>
+#include <tbb/blocked_range.h>
+#include <tbb/tbb.h>
 #include "ams_graph.hpp"
 #include "parsimony.pb.h"
 
@@ -383,29 +386,78 @@ int main(int argc, char** argv){
             size_t num_best = 0;
             bool best_node_has_unique = false;
             Node* best_node = NULL;
+#if DEBUG == 1
+            std::vector<size_t> best_j_vec;
+#endif
 
-#pragma omp parallel for
-            for (size_t k = 0; k < total_nodes; k++) {
-                mapper2_input inp;
-                inp.T = &T;
-                inp.node = dfs[k];
-                inp.node_mutations = &node_mutations;
-                inp.missing_sample_mutations = &missing_sample_mutations[s];
-                inp.excess_mutations = &node_excess_mutations[k];
-                inp.imputed_mutations = &node_imputed_mutations[k];
-                inp.best_level = &best_level;
-                inp.best_set_difference = &best_set_difference;
-                inp.best_node = &best_node;
-                inp.best_j =  &best_j;
-                inp.num_best = &num_best;
-                inp.j = k;
-                inp.has_unique = &best_node_has_unique;
+            tbb::parallel_for( tbb::blocked_range<size_t>(0, total_nodes, 200),
+                    [&](tbb::blocked_range<size_t> r){
 
-                mapper2_body(inp, omplock);
-            }
+                    for (size_t k=r.begin(); k<r.end(); ++k){
+                    mapper2_input inp;
+                    inp.T = &T;
+                    inp.node = dfs[k];
+                    inp.node_mutations = &node_mutations;
+                    inp.missing_sample_mutations = &missing_sample_mutations[s];
+                    inp.excess_mutations = &node_excess_mutations[k];
+                    inp.imputed_mutations = &node_imputed_mutations[k];
+                    inp.best_level = &best_level;
+                    inp.best_set_difference = &best_set_difference;
+                    inp.best_node = &best_node;
+                    inp.best_j =  &best_j;
+                    inp.num_best = &num_best;
+                    inp.j = k;
+                    inp.has_unique = &best_node_has_unique;
+#if DEBUG == 1
+                    inp.best_j_vec = &best_j_vec;
+#endif
+
+                    mapper2_body(inp);
+                    }       
+                    });
+
             
-            fprintf(stderr, "Current tree size (#nodes): %zu\tMissing sample: %s\tParsimony score: %d\n", total_nodes, sample.c_str(), \
-                    best_set_difference);
+            fprintf(stderr, "Current tree size (#nodes): %zu\tMissing sample: %s\tParsimony score: %d\tNumber of parsimony-optimal placements: %zu\n", total_nodes, sample.c_str(), \
+                    best_set_difference, num_best);
+
+#if DEBUG == 1
+            assert(best_j_vec.size() == num_best);
+            if (num_best > 0) {
+                for (auto j: best_j_vec) {
+                    std::vector<std::string> muts;
+                    auto node = dfs[j];
+                        
+                    if (num_best == 1) {
+                        assert(node == best_node);
+                    }
+
+                    fprintf(stderr, "%s\t", node->identifier.c_str());
+                    
+                    std::string s = "|";
+                    for (auto m: node_mutations[node]) {
+                        s += get_nuc_char(m.par_nuc) + std::to_string(m.position) + get_nuc_char(m.mut_nuc[0]) + '|';
+                    }
+                    muts.push_back(std::move(s));
+                    
+                    for (auto anc: T.rsearch(node->identifier)) {
+                        s = "|";
+                        for (auto m: node_mutations[anc]) {
+                            s += get_nuc_char(m.par_nuc) + std::to_string(m.position) + get_nuc_char(m.mut_nuc[0]) + '|';
+                        }
+                        muts.push_back(std::move(s));
+                    }
+                    
+
+                    std::reverse(muts.begin(), muts.end());
+
+                    for (auto s: muts) {
+                        fprintf(stderr, "%s > ", s.c_str());
+                    }
+                    fprintf(stderr, "\n"); 
+                }
+                fprintf(stderr, "\n"); 
+            }
+#endif
 
             if (T.get_node(sample) == NULL) {
                 if (best_node->is_leaf() || best_node_has_unique) {
@@ -685,7 +737,7 @@ int main(int argc, char** argv){
                         curr_node_mutation_string += ',';
                     }
                     else {
-                        curr_node_mutation_string += ';';    
+                        curr_node_mutation_string += ' ';    
                     }
                 }
                 mutation_stack.push(curr_node_mutation_string);
@@ -702,7 +754,7 @@ int main(int argc, char** argv){
                             curr_node_mutation_string += ',';
                         }
                         else {
-                            curr_node_mutation_string += ';';    
+                            curr_node_mutation_string += ' ';    
                         }
                     }
                     mutation_stack.push(curr_node_mutation_string);

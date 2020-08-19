@@ -1,6 +1,6 @@
 #include "ams_graph.hpp"
 
-std::mutex data_lock;
+tbb::mutex data_lock;
 
 int mapper_body::operator()(mapper_input input) {
     TIMEIT();
@@ -156,7 +156,7 @@ int mapper_body::operator()(mapper_input input) {
     return 1;
 }
 
-int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
+void mapper2_body(mapper2_input& input) {
     //    TIMEIT();
 
     int set_difference = 0;
@@ -167,12 +167,13 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
     std::vector<mutation> ancestral_mutations;
 
     bool has_unique = false;
-    bool node_has_mut = false;
+    int node_unique = 0;
+    int node_num_mut = 0;
 
     if (!input.node->is_root()) {
         if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
             for (auto m1: (*input.node_mutations)[input.node]) {
-                node_has_mut = true;
+                node_num_mut++;
                 auto anc_nuc = m1.mut_nuc[0];
                 bool found = false;
                 bool found_pos = false;
@@ -214,6 +215,7 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
                     else {
                         has_unique = true;
                     }
+                    node_unique++;
                 }
             }
         }
@@ -283,7 +285,7 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
         else {
             set_difference += 1;
             if (set_difference > best_set_difference) {
-                return 1;
+                return;
             }
             mutation m;
             m.position = m1.position;
@@ -323,7 +325,7 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
         else {
             set_difference += 1;
             if (set_difference > best_set_difference) {
-                return 1;
+                return;
             }
             mutation m;
             m.position = m1.position;
@@ -334,7 +336,7 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
         }
     }
 
-    omp_set_lock(&omplock);
+    data_lock.lock();
 
     if (set_difference < *input.best_set_difference) {
         *input.best_set_difference = set_difference;
@@ -343,22 +345,32 @@ int mapper2_body(mapper2_input& input, omp_lock_t& omplock) {
         *input.best_j = input.j;
         *input.num_best = 1;
         *input.has_unique = has_unique;
+#if DEBUG == 1
+        input.best_j_vec->clear();
+        input.best_j_vec->emplace_back(input.j);
+#endif
     }
     else if (set_difference == *input.best_set_difference) {
-        if ((input.node->level < *input.best_level) || ((input.node->level == *input.best_level) && (*input.best_j > input.j))) {
+        if ((input.node->level < *input.best_level) || ((input.node->level == *input.best_level) && (*input.best_j < input.j))) {
             *input.best_set_difference = set_difference;
             *input.best_node = input.node;
             *input.best_level = input.node->level;
             *input.best_j = input.j;
             *input.has_unique = has_unique;
         }
-        if (node_has_mut && has_unique) {
-            *input.num_best += 1;
+        // ensure placement is not the same as placing under child
+        // unles it is leaf
+        if (input.node->is_leaf() || (node_unique > 0)) {
+            // ensure placement is not the same as placing under parent
+             if (node_num_mut != node_unique) {
+                *input.num_best += 1;
+#if DEBUG == 1
+                input.best_j_vec->emplace_back(input.j);
+#endif
+            }
         }
     }
 
-    omp_unset_lock(&omplock);
-
-    return 1;
+    data_lock.unlock();
 }
 
