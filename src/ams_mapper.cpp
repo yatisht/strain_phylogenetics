@@ -346,8 +346,8 @@ void mapper2_body(mapper2_input& input) {
         *input.num_best = 1;
         *input.has_unique = has_unique;
 #if DEBUG == 1
-        input.best_j_vec->clear();
-        input.best_j_vec->emplace_back(input.j);
+        input.best_node_vec->clear();;
+        input.best_node_vec->emplace_back(input.node);
 #endif
     }
     else if (set_difference == *input.best_set_difference) {
@@ -365,7 +365,7 @@ void mapper2_body(mapper2_input& input) {
              if (node_num_mut != node_unique) {
                 *input.num_best += 1;
 #if DEBUG == 1
-                input.best_j_vec->emplace_back(input.j);
+                input.best_node_vec->emplace_back(input.node);
 #endif
             }
         }

@@ -387,7 +387,7 @@ int main(int argc, char** argv){
             bool best_node_has_unique = false;
             Node* best_node = NULL;
 #if DEBUG == 1
-            std::vector<size_t> best_j_vec;
+            std::vector<Node*> best_node_vec;
 #endif
 
             tbb::parallel_for( tbb::blocked_range<size_t>(0, total_nodes, 200),
@@ -409,7 +409,7 @@ int main(int argc, char** argv){
                     inp.j = k;
                     inp.has_unique = &best_node_has_unique;
 #if DEBUG == 1
-                    inp.best_j_vec = &best_j_vec;
+                    inp.best_node_vec = &best_node_vec;
 #endif
 
                     mapper2_body(inp);
@@ -421,35 +421,35 @@ int main(int argc, char** argv){
                     best_set_difference, num_best);
 
 #if DEBUG == 1
-            assert(best_j_vec.size() == num_best);
-            if (num_best > 0) {
-                for (auto j: best_j_vec) {
+            assert(best_node_vec.size() == num_best);
+            if (num_best > 1) {
+                for (auto node: best_node_vec) {
                     std::vector<std::string> muts;
-                    auto node = dfs[j];
-                        
-                    if (num_best == 1) {
-                        assert(node == best_node);
-                    }
 
-                    fprintf(stderr, "%s\t", node->identifier.c_str());
+                    fprintf(stderr, "Best node: %s\t", node->identifier.c_str());
                     
                     std::string s = "|";
                     for (auto m: node_mutations[node]) {
                         s += get_nuc_char(m.par_nuc) + std::to_string(m.position) + get_nuc_char(m.mut_nuc[0]) + '|';
                     }
-                    muts.push_back(std::move(s));
+                    if (node_mutations[node].size() > 0) {
+                        muts.push_back(std::move(s));
+                    }
                     
                     for (auto anc: T.rsearch(node->identifier)) {
                         s = "|";
                         for (auto m: node_mutations[anc]) {
                             s += get_nuc_char(m.par_nuc) + std::to_string(m.position) + get_nuc_char(m.mut_nuc[0]) + '|';
                         }
-                        muts.push_back(std::move(s));
+                        if (node_mutations[anc].size() > 0) {
+                            muts.push_back(std::move(s));
+                        }
                     }
                     
 
                     std::reverse(muts.begin(), muts.end());
 
+                    fprintf(stderr, "Mutations: "); 
                     for (auto s: muts) {
                         fprintf(stderr, "%s > ", s.c_str());
                     }
