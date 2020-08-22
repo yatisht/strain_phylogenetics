@@ -371,7 +371,8 @@ int main(int argc, char** argv){
         fprintf(stderr, "Adding missing samples to the tree.\n");  
         
         for (size_t s=0; s<missing_samples.size(); s++) {
-             timer.Start();
+            timer.Start();
+            
             auto sample = missing_samples[s];
 
             auto dfs = T.depth_first_expansion();
@@ -383,11 +384,13 @@ int main(int argc, char** argv){
             size_t best_level = 1e9;
             int best_set_difference = 1e9;
             size_t best_j = 0;
-            size_t num_best = 0;
+            size_t num_best = 1;
             bool best_node_has_unique = false;
-            Node* best_node = NULL;
+            Node* best_node = T.root;
 #if DEBUG == 1
-            std::vector<Node*> best_node_vec;
+            std::vector<bool> node_has_unique(total_nodes, false);
+            std::vector<size_t> best_j_vec;
+            best_j_vec.emplace_back(0);
 #endif
 
             tbb::parallel_for( tbb::blocked_range<size_t>(0, total_nodes, 200),
@@ -409,7 +412,8 @@ int main(int argc, char** argv){
                     inp.j = k;
                     inp.has_unique = &best_node_has_unique;
 #if DEBUG == 1
-                    inp.best_node_vec = &best_node_vec;
+                    inp.best_j_vec = &best_j_vec;
+                    inp.node_has_unique = &(node_has_unique);
 #endif
 
                     mapper2_body(inp);
@@ -421,12 +425,38 @@ int main(int argc, char** argv){
                     best_set_difference, num_best);
 
 #if DEBUG == 1
-            assert(best_node_vec.size() == num_best);
-            if (num_best > 1) {
-                for (auto node: best_node_vec) {
+            
+            fprintf (stderr, "Sample mutations:\t");
+            if (missing_sample_mutations[s].size() > 0) {
+                for (auto m: missing_sample_mutations[s]) {
+                    fprintf(stderr, "|%s| ", (get_nuc_char(m.par_nuc) + std::to_string(m.position) + get_nuc_char(m.mut_nuc[0])).c_str());
+                }
+            }
+            fprintf (stderr, "\n");
+
+            assert((best_j_vec.size() == num_best) && (num_best > 0));
+
+            //best_node_vec.emplace_back(best_node);
+            if (num_best > 0) {
+                for (auto j: best_j_vec) {
+                    auto node = dfs[j];
+                    
                     std::vector<std::string> muts;
 
-                    fprintf(stderr, "Best node: %s\t", node->identifier.c_str());
+                    fprintf(stderr, "Best node ");
+                    if (node->is_leaf() || node_has_unique[j]) {
+                        fprintf(stderr, "(sibling)");
+                    }
+                    else {
+                        fprintf(stderr, "(child)");
+                    }
+
+                    if (node == best_node) {
+                        fprintf(stderr, "*: %s\t", node->identifier.c_str());
+                    }
+                    else {
+                        fprintf(stderr, ": %s\t", node->identifier.c_str());
+                    }
                     
                     std::string s = "|";
                     for (auto m: node_mutations[node]) {
@@ -450,13 +480,18 @@ int main(int argc, char** argv){
                     std::reverse(muts.begin(), muts.end());
 
                     fprintf(stderr, "Mutations: "); 
-                    for (auto s: muts) {
-                        fprintf(stderr, "%s > ", s.c_str());
+                    for (size_t m = 0; m < muts.size(); m++) {
+                        fprintf(stderr, "%s", muts[m].c_str());
+                        if (m+1 < muts.size()) {
+                            fprintf(stderr, " > "); 
+                        }
                     }
                     fprintf(stderr, "\n"); 
                 }
                 fprintf(stderr, "\n"); 
             }
+            
+            assert(std::find(best_j_vec.begin(), best_j_vec.end(), best_j) != best_j_vec.end());
 #endif
 
             if (T.get_node(sample) == NULL) {

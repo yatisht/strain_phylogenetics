@@ -73,7 +73,8 @@ struct mapper2_input {
     Node** best_node;
 
 #if DEBUG == 1
-    std::vector<Node*>* best_node_vec;
+    std::vector<bool>* node_has_unique;
+    std::vector<size_t>* best_j_vec;
 #endif
     
     bool* has_unique;

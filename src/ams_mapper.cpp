@@ -167,8 +167,8 @@ void mapper2_body(mapper2_input& input) {
     std::vector<mutation> ancestral_mutations;
 
     bool has_unique = false;
-    int node_unique = 0;
     int node_num_mut = 0;
+    int num_common_mut = 0;
 
     if (!input.node->is_root()) {
         if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
@@ -195,6 +195,7 @@ void mapper2_body(mapper2_input& input) {
                                     (*input.imputed_mutations).emplace_back(m);
                                 }
                                 found = true;
+                                num_common_mut++;
                                 break;
                             }
                         }
@@ -211,11 +212,11 @@ void mapper2_body(mapper2_input& input) {
                         ancestral_mutations.emplace_back(m);
                         anc_positions.emplace_back(m1.position);
                         (*input.excess_mutations).emplace_back(m);
+                        num_common_mut++;
                     }
                     else {
                         has_unique = true;
                     }
-                    node_unique++;
                 }
             }
         }
@@ -338,36 +339,36 @@ void mapper2_body(mapper2_input& input) {
 
     data_lock.lock();
 
-    if (set_difference < *input.best_set_difference) {
-        *input.best_set_difference = set_difference;
-        *input.best_node = input.node;
-        *input.best_level = input.node->level;
-        *input.best_j = input.j;
-        *input.num_best = 1;
-        *input.has_unique = has_unique;
-#if DEBUG == 1
-        input.best_node_vec->clear();;
-        input.best_node_vec->emplace_back(input.node);
-#endif
-    }
-    else if (set_difference == *input.best_set_difference) {
-        if ((input.node->level < *input.best_level) || ((input.node->level == *input.best_level) && (*input.best_j < input.j))) {
+    // if sibling of internal node or leaf, ensure it is not equivalent to placing under parent
+    // if child of internal node, ensure all internal node mutations are present in the sample
+    if ((has_unique && !input.node->is_leaf() && (num_common_mut > 0) && (node_num_mut != num_common_mut)) || \
+            (input.node->is_leaf() && (num_common_mut > 0)) || (!has_unique && !input.node->is_leaf() && (node_num_mut == num_common_mut))) { 
+        if (set_difference < *input.best_set_difference) {
             *input.best_set_difference = set_difference;
             *input.best_node = input.node;
             *input.best_level = input.node->level;
             *input.best_j = input.j;
+            *input.num_best = 1;
             *input.has_unique = has_unique;
-        }
-        // ensure placement is not the same as placing under child
-        // unles it is leaf
-        if (input.node->is_leaf() || (node_unique > 0)) {
-            // ensure placement is not the same as placing under parent
-             if (node_num_mut != node_unique) {
-                *input.num_best += 1;
 #if DEBUG == 1
-                input.best_node_vec->emplace_back(input.node);
+            (*input.node_has_unique)[input.j] = has_unique;
+            input.best_j_vec->clear();
+            input.best_j_vec->emplace_back(input.j);
 #endif
+        }
+        else if (set_difference == *input.best_set_difference) {
+            if ((input.node->level < *input.best_level) || ((input.node->level == *input.best_level) && (*input.best_j < input.j))) {
+                *input.best_set_difference = set_difference;
+                *input.best_node = input.node;
+                *input.best_level = input.node->level;
+                *input.best_j = input.j;
+                *input.has_unique = has_unique;
             }
+            *input.num_best += 1;
+#if DEBUG == 1
+            (*input.node_has_unique)[input.j] = has_unique;
+            input.best_j_vec->emplace_back(input.j);
+#endif
         }
     }
 
