@@ -435,8 +435,8 @@ int main(int argc, char** argv){
                         if (c_size + 1 < m.mut_nuc.size()) {
                             fprintf(stderr, ",");
                         }
-                        fprintf(stderr, "| ");
                     }
+                    fprintf(stderr, "| ");
                 }
             }
             fprintf (stderr, "\n");
