@@ -38,7 +38,7 @@
 ```
 ### Load the tree and node assignments from a previously saved file and add new samples to the tree from the input vcf file 
 ```
-    $ ./add_missing_samples --vcf ../vcf/pruned-sumtree-for-cog.vcf --threads 4 --load-assignments pruned.pb
+    $ ./add_missing_samples --vcf ../vcf/missing.vcf --threads 4 --load-assignments pruned.pb
 ```
 
 
