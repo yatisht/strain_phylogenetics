@@ -285,7 +285,7 @@ std::vector<Node*> Tree::depth_first_expansion(Node* node) {
     return traversal;
 }
 
-std::string get_newick_string (Tree& T, Node* node, bool print_internal, bool print_branch_len) {
+std::string TreeLib::get_newick_string (Tree& T, Node* node, bool print_internal, bool print_branch_len) {
     std::string newick_string = "";
 
     std::vector<Node*> traversal = T.depth_first_expansion(node);
@@ -379,11 +379,11 @@ std::string get_newick_string (Tree& T, Node* node, bool print_internal, bool pr
     return newick_string;
 }
 
-std::string get_newick_string (Tree& T, bool print_internal, bool print_branch_len) {
+std::string TreeLib::get_newick_string (Tree& T, bool print_internal, bool print_branch_len) {
     return get_newick_string(T, T.root, print_internal, print_branch_len);
 }
 
-void split (std::string s, char delim, std::vector<std::string>& words) {
+void TreeLib::split (std::string s, char delim, std::vector<std::string>& words) {
     std::string curr = "";
     for (auto c: s) {
         if (c == delim) {
@@ -399,7 +399,7 @@ void split (std::string s, char delim, std::vector<std::string>& words) {
     }
 }
 
-void split (std::string s, std::vector<std::string>& words) {
+void TreeLib::split (std::string s, std::vector<std::string>& words) {
     std::string curr = "";
     std::vector<std::string> ret;
     
@@ -413,7 +413,7 @@ void split (std::string s, std::vector<std::string>& words) {
     };
 }
 
-Tree create_tree_from_newick_string (std::string newick_string) {
+Tree TreeLib::create_tree_from_newick_string (std::string newick_string) {
     Tree T;
 
     std::vector<std::string> leaves;
@@ -498,7 +498,7 @@ Tree create_tree_from_newick_string (std::string newick_string) {
     return T;
 }
 
-Tree create_tree_from_newick (std::string filename) {
+Tree TreeLib::create_tree_from_newick (std::string filename) {
     std::ifstream infile(filename);
     std::string newick_string;
     std::getline(infile, newick_string);

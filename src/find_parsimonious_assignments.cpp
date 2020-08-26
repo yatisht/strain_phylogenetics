@@ -84,7 +84,7 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    Tree T = create_tree_from_newick(tree_filename);
+    Tree T = TreeLib::create_tree_from_newick(tree_filename);
 
     auto bfs = T.breadth_first_expansion();
     std::unordered_map<std::string, size_t> bfs_idx;
@@ -93,7 +93,7 @@ int main(int argc, char** argv){
     }
 
     if (!print_vcf) {
-        std::cout << get_newick_string(T, true, false) << std::endl; 
+        std::cout << TreeLib::get_newick_string(T, true, false) << std::endl; 
     }
 
     std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
@@ -122,7 +122,7 @@ int main(int argc, char** argv){
             std::string s;
             std::getline(instream, s);
             std::vector<std::string> words;
-            split(s, words);
+            TreeLib::split(s, words);
             inp.variant = "";
             inp.print_vcf = print_vcf;
             if (not header_found) {
@@ -150,7 +150,7 @@ int main(int argc, char** argv){
               std::vector<std::string> alleles;
               alleles.clear();
               inp.variant = words[3] + words[1] + words[4];
-              split(words[4], ',', alleles);
+              TreeLib::split(words[4], ',', alleles);
               inp.T = &T;
               inp.bfs = &bfs;
               inp.bfs_idx = &bfs_idx;

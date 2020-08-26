@@ -148,7 +148,7 @@ int main(int argc, char** argv){
     std::unordered_map<std::string, size_t> bfs_idx;
     
     if (tree_filename != "") {
-        T = create_tree_from_newick(tree_filename);
+        T = TreeLib::create_tree_from_newick(tree_filename);
         bfs = T.breadth_first_expansion();
 
         for (size_t idx = 0; idx < bfs.size(); idx++) {
@@ -180,7 +180,7 @@ int main(int argc, char** argv){
                 std::string s;
                 std::getline(instream, s);
                 std::vector<std::string> words;
-                split(s, words);
+                TreeLib::split(s, words);
                 inp.variant_pos = -1;
                 if ((not header_found) && (words.size() > 1)) {
                 if (words[1] == "POS") {
@@ -203,8 +203,9 @@ int main(int argc, char** argv){
                     std::vector<std::string> alleles;
                     alleles.clear();
                     inp.variant_pos = std::stoi(words[1]); 
-                    split(words[4], ',', alleles);
+                    TreeLib::split(words[4], ',', alleles);
                     inp.T = &T;
+                    inp.chrom = words[0];
                     inp.bfs = &bfs;
                     inp.bfs_idx = &bfs_idx;
                     inp.variant_ids = &variant_ids;
@@ -250,7 +251,7 @@ int main(int argc, char** argv){
         data.ParseFromIstream(&inpfile);
         inpfile.close();
 
-        T = create_tree_from_newick_string(data.newick());
+        T = TreeLib::create_tree_from_newick_string(data.newick());
 
         auto dfs = T.depth_first_expansion();
         std::unordered_set<std::string> condensed_leaves;
@@ -262,6 +263,7 @@ int main(int argc, char** argv){
             for (int k = 0; k < mutation_list.mutation_size(); k++) {
                 auto mut = mutation_list.mutation(k);
                 mutation m;
+                m.chrom = mut.chromosome();
                 m.position = mut.position();
                 m.ref_nuc = mut.ref_nuc();
                 m.par_nuc = mut.par_nuc();
@@ -304,7 +306,7 @@ int main(int argc, char** argv){
         while (instream.peek() != EOF) {
             std::getline(instream, s);
             std::vector<std::string> words;
-            split(s, words);
+            TreeLib::split(s, words);
             if ((not header_found) && (words.size() > 1)) {
                 if (words[1] == "POS") {
                     for (size_t j=9; j < words.size(); j++) {
@@ -329,7 +331,7 @@ int main(int argc, char** argv){
                 }
                 std::vector<std::string> alleles;
                 alleles.clear();
-                split(words[4], ',', alleles);
+                TreeLib::split(words[4], ',', alleles);
                 for (size_t k = 0; k < missing_idx.size(); k++) {
                     size_t j = missing_idx[k];
                     auto iter = missing_samples.begin();
@@ -656,7 +658,7 @@ int main(int argc, char** argv){
             }
         }
         
-        condensed_T = create_tree_from_newick_string(get_newick_string(T, false, true));
+        condensed_T = TreeLib::create_tree_from_newick_string(TreeLib::get_newick_string(T, false, true));
         
         fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
         
@@ -719,11 +721,11 @@ int main(int argc, char** argv){
         fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
         
         fprintf(stderr, "Printing condensed tree. \n");
-        fprintf(stdout, "%s\n", get_newick_string(condensed_T, true, true).c_str());
+        fprintf(stdout, "%s\n", TreeLib::get_newick_string(condensed_T, true, true).c_str());
     }
 
     fprintf(stderr, "Printing final tree. \n");
-    fprintf(stdout, "%s\n", get_newick_string(T, true, true).c_str());
+    fprintf(stdout, "%s\n", TreeLib::get_newick_string(T, true, true).c_str());
 
     if (print_uncondensed_tree) {
         fprintf(stderr, "Printing uncondensed final tree. \n");
@@ -731,7 +733,7 @@ int main(int argc, char** argv){
         timer.Start();
         
         if (!collapse_tree && (condensed_nodes.size() > 0)) {
-            Tree T_to_print = create_tree_from_newick_string(get_newick_string(T, false, true)); 
+            Tree T_to_print = TreeLib::create_tree_from_newick_string(TreeLib::get_newick_string(T, false, true)); 
             for (size_t it = 0; it < condensed_nodes.size(); it++) {
                 auto cn = condensed_nodes.begin();
                 std::advance(cn, it);
@@ -749,10 +751,10 @@ int main(int argc, char** argv){
                     T_to_print.create_node(cn->second[s], par->identifier, n->branch_length);
                 }
             }
-            fprintf(stdout, "%s\n", get_newick_string(T_to_print, true, true).c_str());
+            fprintf(stdout, "%s\n", TreeLib::get_newick_string(T_to_print, true, true).c_str());
         }
         else {
-            fprintf(stdout, "%s\n", get_newick_string(T, true, true).c_str());
+            fprintf(stdout, "%s\n", TreeLib::get_newick_string(T, true, true).c_str());
         }
         
         fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
@@ -831,8 +833,8 @@ int main(int argc, char** argv){
                     continue;
                 }
 
-                std::string newick = get_newick_string(T, anc, false, true);
-                Tree new_T = create_tree_from_newick_string(newick);
+                std::string newick = TreeLib::get_newick_string(T, anc, false, true);
+                Tree new_T = TreeLib::create_tree_from_newick_string(newick);
 
                 if (num_leaves > print_subtrees_size) {
                     auto last_anc = new_T.get_node(missing_samples[i]);
@@ -864,7 +866,7 @@ int main(int argc, char** argv){
                         }
                     }
 
-                    newick = get_newick_string(new_T, false, true);
+                    newick = TreeLib::get_newick_string(new_T, false, true);
                 }
 
 #pragma omp parallel for
@@ -891,7 +893,7 @@ int main(int argc, char** argv){
         Parsimony::data data;
 
         if (!collapse_tree) {
-            data.set_newick(get_newick_string(T, false, true));
+            data.set_newick(TreeLib::get_newick_string(T, false, true));
 
             auto dfs = T.depth_first_expansion();
 
@@ -900,6 +902,7 @@ int main(int argc, char** argv){
                 auto mutations = node_mutations[dfs[idx]];
                 for (auto m: mutations) {
                     auto mut = mutation_list->add_mutation();
+                    mut->set_chromosome(m.chrom);
                     mut->set_position(m.position);
                     mut->set_ref_nuc(m.ref_nuc);
                     mut->set_par_nuc(m.par_nuc);
@@ -911,7 +914,7 @@ int main(int argc, char** argv){
             }
         }
         else {
-            data.set_newick(get_newick_string(condensed_T, false, true));
+            data.set_newick(TreeLib::get_newick_string(condensed_T, false, true));
 
             auto dfs = condensed_T.depth_first_expansion();
 
@@ -920,6 +923,7 @@ int main(int argc, char** argv){
                 auto mutations = condensed_node_mutations[dfs[idx]];
                 for (auto m: mutations) {
                     auto mut = mutation_list->add_mutation();
+                    mut->set_chromosome(m.chrom);
                     mut->set_position(m.position);
                     mut->set_ref_nuc(m.ref_nuc);
                     mut->set_par_nuc(m.par_nuc);

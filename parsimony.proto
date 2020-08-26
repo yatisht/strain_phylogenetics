@@ -6,6 +6,7 @@ message mut {
     int32 ref_nuc = 2;
     int32 par_nuc = 3;
     repeated int32 mut_nuc = 4;
+    string chromosome = 5;
 }
 
 message mutation_list {

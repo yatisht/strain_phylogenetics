@@ -34,6 +34,7 @@ class Timer {
 };
 
 struct mutation {
+    std::string chrom;
     int position;
     int8_t ref_nuc;
     int8_t par_nuc;
@@ -42,6 +43,7 @@ struct mutation {
 
 struct mapper_input {
     Tree* T;
+    std::string chrom;
     int8_t ref_nuc;
     int variant_pos;
     std::vector<Node*>* bfs;

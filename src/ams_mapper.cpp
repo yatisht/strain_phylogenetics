@@ -6,12 +6,6 @@ int mapper_body::operator()(mapper_input input) {
     TIMEIT();
     
     if (input.variant_pos >= 0) {
-        /*
-        data_lock.lock();
-        fprintf(stderr, "%d\n", input.variant_pos);
-        data_lock.unlock();
-        */
-
         size_t num_nodes = input.bfs->size();
         std::vector<int8_t> states(num_nodes);
         std::vector<std::vector<int>> scores(num_nodes);
@@ -53,6 +47,7 @@ int mapper_body::operator()(mapper_input input) {
                 if (nucs.size() < 4) {
                     data_lock.lock();
                     mutation m;
+                    m.chrom = input.chrom;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
                     for (auto n: nucs) {
@@ -127,6 +122,7 @@ int mapper_body::operator()(mapper_input input) {
             if (state != par_state) {
                 if (input.node_mutations->find(node) != input.node_mutations->end()) {
                     mutation m;
+                    m.chrom = input.chrom;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
                     m.par_nuc = par_state;
@@ -138,6 +134,7 @@ int mapper_body::operator()(mapper_input input) {
                 }
                 else {
                     mutation m;
+                    m.chrom = input.chrom;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
                     m.par_nuc = par_state;
@@ -183,6 +180,7 @@ void mapper2_body(mapper2_input& input) {
                         for (auto nuc: m2.mut_nuc) {
                             if (nuc == anc_nuc) {
                                 mutation m;
+                                m.chrom = m1.chrom;
                                 m.position = m1.position;
                                 m.ref_nuc = m1.ref_nuc;
                                 m.par_nuc = m1.par_nuc;
@@ -266,6 +264,7 @@ void mapper2_body(mapper2_input& input) {
         if (found) {
             if (m1.mut_nuc.size() > 1) {
                 mutation m;
+                m.chrom = m1.chrom;
                 m.position = m1.position;
                 m.ref_nuc = m1.ref_nuc;
                 m.par_nuc = anc_nuc;
@@ -276,6 +275,7 @@ void mapper2_body(mapper2_input& input) {
         else if (!found_pos && has_ref) {
             if (m1.mut_nuc.size() > 1) {
                 mutation m;
+                m.chrom = m1.chrom;
                 m.position = m1.position;
                 m.ref_nuc = m1.ref_nuc;
                 m.par_nuc = anc_nuc;
@@ -289,6 +289,7 @@ void mapper2_body(mapper2_input& input) {
                 return;
             }
             mutation m;
+            m.chrom = m1.chrom;
             m.position = m1.position;
             m.ref_nuc = m1.ref_nuc;
             m.par_nuc = anc_nuc;
@@ -329,6 +330,7 @@ void mapper2_body(mapper2_input& input) {
                 return;
             }
             mutation m;
+            m.chrom = m1.chrom;
             m.position = m1.position;
             m.ref_nuc = m1.ref_nuc;
             m.par_nuc = anc_nuc;

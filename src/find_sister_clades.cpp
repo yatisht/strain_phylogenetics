@@ -8,7 +8,7 @@
 
 namespace po = boost::program_options;
 
-int main(int argc, char** argv){
+int main(int argc, char** argv) {
 
     std::string tree_filename;
     std::string samples_filename;
@@ -35,7 +35,7 @@ int main(int argc, char** argv){
         return 1;
     }
 
-    Tree T = create_tree_from_newick(tree_filename);
+    Tree T = TreeLib::create_tree_from_newick(tree_filename);
 
     std::ifstream infile;
     infile.open(samples_filename);
