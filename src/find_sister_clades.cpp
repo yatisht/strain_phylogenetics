@@ -12,10 +12,12 @@ int main(int argc, char** argv) {
 
     std::string tree_filename;
     std::string samples_filename;
+    uint32_t generations = 1;
     po::options_description desc{"Options"};
     desc.add_options()
         ("tree", po::value<std::string>(&tree_filename)->required(), "Input tree file")
         ("samples", po::value<std::string>(&samples_filename)->required(), "File containing missing samples.")
+        ("generations", po::value<uint32_t>(&generations)->default_value(1), "Number of generations")
         ("help", "Print help messages");
     
     po::options_description all_options;
@@ -24,6 +26,7 @@ int main(int argc, char** argv) {
     po::positional_options_description p;
     p.add("tree", 1);
     p.add("samples", 1);
+    p.add("generations", 1);
 
     po::variables_map vm;
     try{
@@ -33,6 +36,11 @@ int main(int argc, char** argv) {
     catch(std::exception &e){
         std::cout << desc << std::endl;
         return 1;
+    }
+
+    if (generations < 1) {
+        fprintf(stderr, "Number of generations should be greater than or equal to 1.\n");
+        exit(1);
     }
 
     Tree T = TreeLib::create_tree_from_newick(tree_filename);
@@ -53,6 +61,7 @@ int main(int argc, char** argv) {
     for (auto s: missing_samples) {
         auto last_anc = T.get_node(s);
         std::vector<std::string> siblings;
+        uint32_t num_generations = 1;
         for (auto anc: T.rsearch(s)) {
             for (auto child: anc->children) {
                 if (child != last_anc) {
@@ -65,7 +74,8 @@ int main(int argc, char** argv) {
                 }
             }
             last_anc = anc;
-            if (siblings.size() > 0) {
+            num_generations++;
+            if (num_generations > generations) {
                 break;
             }
         }
