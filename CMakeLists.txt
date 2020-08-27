@@ -4,7 +4,7 @@ cmake_minimum_required (VERSION 3.8)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -Wall -g")
 set(CMAKE_INCLUDE_CURRENT_DIR ON) 
 
-find_package(Protobuf REQUIRED HINTS ${Protobuf_PATH}) 
+find_package(Protobuf REQUIRED) 
 
 # Print version messages
 if(Protobuf_FOUND)
@@ -24,16 +24,16 @@ find_package(OpenMP REQUIRED)
 
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
+protobuf_generate_cpp(
+    PROTO_SRCS PROTO_HDRS
+    parsimony.proto)
+
 add_executable(usher
     src/tree.cpp
     src/usher_mapper.cpp
     src/usher.cpp
+    ${PROTO_SRCS}
     )
-
-protobuf_generate(
-    LANGUAGE cpp
-    TARGET usher 
-    PROTOS parsimony.proto)
 
 if(SAVE_PROFILE)
     if(DEBUG)
@@ -49,6 +49,6 @@ else(SAVE_PROFILE)
     endif(DEBUG)
 endif(SAVE_PROFILE)
 
-TARGET_LINK_LIBRARIES(usher PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS} ${Protobuf_LIBRARIES} OpenMP::OpenMP_CXX)
+TARGET_LINK_LIBRARIES(usher PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS} ${Protobuf_LIBRARIES} ${PROTO_HDRS} OpenMP::OpenMP_CXX)
 
 
