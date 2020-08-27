@@ -108,7 +108,10 @@ int main(int argc, char** argv){
     }
     catch(std::exception &e){
         std::cerr << desc << std::endl;
-        return 1;
+        if(vm.count("help"))
+            return 0;
+        else
+            return 1;
     }
 
     if (print_subtrees_size == 1) {
