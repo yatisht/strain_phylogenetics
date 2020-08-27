@@ -121,6 +121,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 ```
     $ ./build/usher --load-assignments pruned-sumtree-for-cog.assignments.pb --vcf vcf/missing.vcf  --threads 4
 ```
+* UShER is much faster than existing tools with similar functionality and has now been integrated in the [UCSC SARS-CoV-2 Genome Browser] (https://genome.ucsc.edu/cgi-bin/hgPhyloPlace).
 
 ### Reference
 * Yatish Turakhia, Bryan Thornlow, Landen Gozashti, Angie S. Hinrichs, Jason D. Fernandes, David Haussler, and Russell Corbett-Detig, "Stability of SARS-CoV-2 Phylogenies", bioRxiv [pre-print](https://www.biorxiv.org/content/10.1101/2020.06.08.141127v1) 2020.
