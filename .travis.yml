@@ -16,7 +16,7 @@ before_script:
   - tar -xvzf protobuf-cpp-3.12.3.tar.gz 
   - cd protobuf-3.12.3
   - ./configure --prefix=${PWD}/install
-  - make -j
+  - make
   - make install
   - cd cmake; mkdir build; cd build;
   - cmake ..
