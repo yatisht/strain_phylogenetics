@@ -4,7 +4,11 @@ cmake_minimum_required (VERSION 3.8)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -Wall -g")
 set(CMAKE_INCLUDE_CURRENT_DIR ON) 
 
-find_package(Protobuf REQUIRED HINTS ${Protobuf_PATH}) 
+if(DEFINED Protobuf_PATH)                                                                                                                                                                                                                     
+    find_package(Protobuf REQUIRED HINTS ${Protobuf_PATH}) 
+else()
+    find_package(Protobuf REQUIRED) 
+endif()
 
 # Print version messages
 if(Protobuf_FOUND)
@@ -24,16 +28,32 @@ find_package(OpenMP REQUIRED)
 
 INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
 
-add_executable(usher
-    src/tree.cpp
-    src/usher_mapper.cpp
-    src/usher.cpp
-    )
+if(DEFINED Protobuf_PATH)
+    add_executable(usher
+        src/tree.cpp
+        src/usher_mapper.cpp
+        src/usher.cpp
+        )
 
-protobuf_generate(
-    LANGUAGE cpp
-    TARGET usher 
-    PROTOS parsimony.proto)
+    protobuf_generate(
+        LANGUAGE cpp
+        TARGET usher 
+        PROTOS parsimony.proto)
+else()
+    protobuf_generate_cpp(
+        PROTO_SRCS PROTO_HDRS
+        parsimony.proto)
+
+    add_executable(usher
+        src/tree.cpp
+        src/usher_mapper.cpp
+        src/usher.cpp
+        ${PROTO_SRCS}
+        ${PROTO_HDRS}
+        )
+endif()
+
+
 
 if(SAVE_PROFILE)
     if(DEBUG)
