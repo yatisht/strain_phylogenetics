@@ -13,16 +13,6 @@ before_install:
 compiler: gcc
 
 before_script:
-  - wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protobuf-cpp-3.12.3.tar.gz
-  - tar -xvzf protobuf-cpp-3.12.3.tar.gz 
-  - cd protobuf-3.12.3
-  - ./configure --prefix=${PWD}/install
-  - make
-  - make install
-  - cd cmake; mkdir build; cd build;
-  - cmake ..
-  - make
-  - cd ../../../
   - git clone https://github.com/01org/tbb
   - mkdir build
   - pushd build
