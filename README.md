@@ -13,24 +13,9 @@ This repository provides tools primarily designed for analyzing Nextstrain (http
     $ pip install treelib numpy==1.14.6 scipy==1.0.1  
 ```
 
-### Install C++ prerequisites and build programs
+### Install C++ prerequisites and build programs (for Ubuntu-18.04 and above)
 ```
-    $ wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protobuf-cpp-3.12.3.tar.gz
-    $ tar -xvzf protobuf-cpp-3.12.3.tar.gz 
-    $ cd protobuf-3.12.3
-    $ ./configure --prefix=${PWD}/install
-    $ make -j
-    $ make install
-    $ cd cmake; mkdir build; cd build;
-    $ cmake ..
-    $ make -j
-    $ cd ../../../
-    $ git clone https://github.com/01org/tbb
-    $ mkdir build
-    $ pushd build
-    $ cmake  -DTBB_ROOT=${PWD}/../tbb   -DProtobuf_INCLUDE_DIRS=${PWD}/../protobuf-3.12.3/install/include/ -DProtobuf_LIBRARIES=${PWD}/../protobuf-3.12.3/cmake/build/libprotobuf.a -DProtobuf_PATH=${PWD}/../protobuf-3.12.3/cmake/build/lib64/cmake/protobuf .. 
-    $ make -j4
-    $ popd
+    $ ./installUbuntu.sh 
 ```
 
 ### Newick and Variant Call Format (VCF) input files
