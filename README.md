@@ -6,6 +6,27 @@ This repository provides tools primarily designed for analyzing Nextstrain (http
 ```
     $ pip install treelib numpy==1.14.6 scipy==1.0.1  
 ```
+
+### Install C++ prerequisites and build programs
+```
+    $ wget https://github.com/protocolbuffers/protobuf/releases/download/v3.12.3/protobuf-cpp-3.12.3.tar.gz
+    $ tar -xvzf protobuf-cpp-3.12.3.tar.gz 
+    $ cd protobuf-3.12.3
+    $ ./configure --prefix=${PWD}/install
+    $ make -j
+    $ make install
+    $ cd cmake; mkdir build; cd build;
+    $ cmake ..
+    $ make -j
+    $ cd ../../../
+    $ git clone https://github.com/01org/tbb
+    $ mkdir build
+    $ pushd build
+    $ cmake  -DTBB_ROOT=${PWD}/../tbb   -DProtobuf_INCLUDE_DIRS=${PWD}/../protobuf-3.12.3/install/include/ -DProtobuf_LIBRARIES=${PWD}/../protobuf-3.12.3/cmake/build/libprotobuf.a -DProtobuf_PATH=${PWD}/../protobuf-3.12.3/cmake/build/lib64/cmake/protobuf .. 
+    $ make -j4
+    $ popd
+```
+
 ### Newick and Variant Call Format (VCF) input files
 
 Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic trees must be valid [Newick](https://en.wikipedia.org/wiki/Newick_format)-formatted files and variants must be [Variant Call Format (VCF)](https://en.wikipedia.org/wiki/Variant_Call_Format) files that include sample genotypes.  The leaf labels in the Newick files must exactly match the sample names in the VCF header line starting with "#CHROM".  Files in these formats generated from [Nextstrain](https://nextstrain.org/ncov) data are available from the [UCSC Genome Browser](https://genome.ucsc.edu/cgi-bin/hgTrackUi?db=wuhCor1&g=nextstrainSamples).
@@ -89,5 +110,17 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 * The above command completes in under 40 sec on a Macbook Pro and produces a merged tree (symm-merged-sumtree-cog.nh) from two input trees (pruned-sumtree-for-cog.nh and pruned-cog-for-sumtree.nh) that is maximally resolved and compatible with both input trees (refer to our manuscript referenced at the bottom for more details).  Below are the resulting tanglegrams of the resulting merged tree with the two input trees (after applying tree rotation). The above command can also be used without the symmetric flag for its asymmetric version (where first input tree is given a priority to resolve the merged tree) or using the intersectOnly flag that produces a simple consensus of the two input trees.  
 
 ![Merged-tanglegrams](/images/tanglegrams_merged.png)
+
+### Ultrafast Sample Placement on Existing Trees (UShER)
+
+* UShER is a program that rapidly places new samples onto an existing phylogeny using maximum parsimony. It is particularly helpful in understanding the relationships of newly sequenced SARS-CoV-2 genomes with each other and with previously sequences genomes in an existing phylogeny. UShER prep-processes the existing phylogeny (pruned-sumtree-for-cog.nh in the example below) and its variation (pruned-sumtree-for-cog.vcf in the example below), computes the parsimonious assignments of each variation and stores the results in a compact [protobuf](https://developers.google.com/protocol-buffers) file (pruned-sumtree-for-cog.assignments.pb in the example below). 
+```
+    $ ./build/usher --tree ../tree/pruned-sumtree-for-cog.nh --vcf ../vcf/pruned-sumtree-for-cog.vcf --threads 4 --save-assignments pruned-sumtree-for-cog.assignments.pb 
+```
+* Once the pre-processing is complete, new sequences whose variants are called in a VCF file (missing.vcf in the example below) can be added to the existing phylogeny using the command below:
+```
+    $ ./build/usher --load-assignments pruned-sumtree-for-cog.assignments.pb --vcf ../vcf/missing.vcf  --threads 4
+```
+
 ### Reference
 * Yatish Turakhia, Bryan Thornlow, Landen Gozashti, Angie S. Hinrichs, Jason D. Fernandes, David Haussler, and Russell Corbett-Detig, "Stability of SARS-CoV-2 Phylogenies", bioRxiv [pre-print](https://www.biorxiv.org/content/10.1101/2020.06.08.141127v1) 2020.
