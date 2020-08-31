@@ -53,6 +53,10 @@ else()
         )
 endif()
 
+add_executable(rotate_trees
+    src/tree.cpp
+    src/rotate_trees.cpp
+    )
 
 
 if(SAVE_PROFILE)
@@ -68,7 +72,11 @@ else(SAVE_PROFILE)
         TARGET_COMPILE_OPTIONS(usher PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
     endif(DEBUG)
 endif(SAVE_PROFILE)
+        
+TARGET_COMPILE_OPTIONS(rotate_trees PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
 
 TARGET_LINK_LIBRARIES(usher PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS} ${Protobuf_LIBRARIES} OpenMP::OpenMP_CXX)
+
+TARGET_LINK_LIBRARIES(rotate_trees PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS})
 
 

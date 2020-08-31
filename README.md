@@ -84,7 +84,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 ### Rotate trees for tanglegrams
 * A common visualization strategy for comparing two tree topologies is to use tanglegrams i.e. plot them side-by-side with common leaves connected by straight lines. A visually appealing tanglegram is one in which corresponding clades in both trees are arranged in the same vertical order and the there is minimum crossing of connecting lines with each other. While node rotation algorithms in the context of tanglegram visualization have been implemented in the [cophylo](https://www.rdocumentation.org/packages/phytools/versions/0.7-20/topics/cophylo) and [Dendroscope3](http://dendroscope.org/) tools, these algorithms are either slow or inadequate for large SARS-CoV-2 phylogenies. We implemented a quick heuristic to produce vastly improved tanglegrams.
 ```
-    $ python rotate_trees.py -T1 tree/pruned-sumtree-for-cog.nh -T2 tree/pruned-cog-for-sumtree.nh -T1_out rot-pruned-sumtree-for-cog.nh -T2_out rot-pruned-cog-for-sumtree.nh
+    $ ./build/rotate_trees --T1 tree/pruned-sumtree-for-cog.nh --T2 tree/pruned-cog-for-sumtree.nh --T1_out rot-pruned-sumtree-for-cog.nh --T2_out rot-pruned-cog-for-sumtree.nh
 ```
 * The above command completes in under 1 sec and produces rotated trees (rot-pruned-cog-for-sumtree.nh and rot-pruned-sumtree-for-cog.nh) with a much improved tanglegram as seen below (images generated with the help of [cophylo](https://www.rdocumentation.org/packages/phytools/versions/0.7-20/topics/cophylo) tool, setting rotate to FALSE).
 
