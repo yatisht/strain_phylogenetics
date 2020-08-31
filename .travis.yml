@@ -10,3 +10,4 @@ before_script:
     
 script: 
   - ./build/usher --help
+  - ./build/rotate_trees --help
