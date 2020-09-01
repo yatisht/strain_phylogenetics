@@ -386,7 +386,7 @@ int main(int argc, char** argv){
             std::vector<std::vector<mutation>> node_excess_mutations(total_nodes);
             std::vector<std::vector<mutation>> node_imputed_mutations(total_nodes);
 
-            size_t best_level = 1e9;
+            size_t best_node_num_leaves = 0;
             int best_set_difference = 1e9;
             size_t best_j = 0;
             size_t num_best = 1;
@@ -409,7 +409,7 @@ int main(int argc, char** argv){
                     inp.missing_sample_mutations = &missing_sample_mutations[s];
                     inp.excess_mutations = &node_excess_mutations[k];
                     inp.imputed_mutations = &node_imputed_mutations[k];
-                    inp.best_level = &best_level;
+                    inp.best_node_num_leaves = &best_node_num_leaves;
                     inp.best_set_difference = &best_set_difference;
                     inp.best_node = &best_node;
                     inp.best_j =  &best_j;
