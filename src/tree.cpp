@@ -500,6 +500,10 @@ Tree TreeLib::create_tree_from_newick_string (std::string newick_string) {
 
 Tree TreeLib::create_tree_from_newick (std::string filename) {
     std::ifstream infile(filename);
+    if (!infile) {
+        fprintf(stderr, "ERROR: Could not open the tree file: %s!\n", filename.c_str());
+        exit(1);
+    }
     std::string newick_string;
     std::getline(infile, newick_string);
 

@@ -159,6 +159,10 @@ int main(int argc, char** argv){
         }
 
         std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
+        if (!infile) {
+            fprintf(stderr, "ERROR: Could not open the VCF file: %s!\n", vcf_filename.c_str());
+            exit(1);
+        }
         boost::iostreams::filtering_istream instream;
         try {
             if (vcf_filename.find(".gz\0") != std::string::npos) {
@@ -251,6 +255,10 @@ int main(int argc, char** argv){
         Parsimony::data data;
 
         std::ifstream inpfile(din_filename, std::ios::in | std::ios::binary);
+        if (!inpfile) {
+            fprintf(stderr, "ERROR: Could not load the assignments file: %s!\n", din_filename.c_str());
+            exit(1);
+        }
         data.ParseFromIstream(&inpfile);
         inpfile.close();
 
@@ -294,6 +302,10 @@ int main(int argc, char** argv){
         timer.Start();
 
         std::ifstream infile(vcf_filename, std::ios_base::in | std::ios_base::binary);
+        if (!infile) {
+            fprintf(stderr, "ERROR: Could not open the VCF file: %s!\n", vcf_filename.c_str());
+            exit(1);
+        }
         boost::iostreams::filtering_istream instream;
         try {
             if (vcf_filename.find(".gz\0") != std::string::npos) {
