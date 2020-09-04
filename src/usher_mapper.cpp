@@ -166,6 +166,7 @@ void mapper2_body(mapper2_input& input) {
     bool has_unique = false;
     int node_num_mut = 0;
     int num_common_mut = 0;
+    size_t num_anc_mut = 0;
 
     if (!input.node->is_root()) {
         if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
@@ -235,6 +236,7 @@ void mapper2_body(mapper2_input& input) {
                     ancestral_mutations.emplace_back(m);
                     anc_positions.emplace_back(m.position);
                 }
+                num_anc_mut++;
             }
         }
     }
@@ -339,17 +341,15 @@ void mapper2_body(mapper2_input& input) {
         }
     }
 
-    size_t num_leaves = input.T->get_leaves(input.node->identifier).size();
-    
-    data_lock.lock();
     // if sibling of internal node or leaf, ensure it is not equivalent to placing under parent
     // if child of internal node, ensure all internal node mutations are present in the sample
     if ((has_unique && !input.node->is_leaf() && (num_common_mut > 0) && (node_num_mut != num_common_mut)) || \
             (input.node->is_leaf() && (num_common_mut > 0)) || (!has_unique && !input.node->is_leaf() && (node_num_mut == num_common_mut))) { 
+        data_lock.lock();
         if (set_difference < *input.best_set_difference) {
             *input.best_set_difference = set_difference;
             *input.best_node = input.node;
-            *input.best_node_num_leaves = num_leaves;
+            *input.best_node_num_anc_mut = num_anc_mut;
             *input.best_j = input.j;
             *input.num_best = 1;
             *input.has_unique = has_unique;
@@ -360,28 +360,10 @@ void mapper2_body(mapper2_input& input) {
 #endif
         }
         else if (set_difference == *input.best_set_difference) {
-            if (input.node->parent == *input.best_node) {
-                if (2*num_leaves > *input.best_node_num_leaves) {
-                    *input.best_set_difference = set_difference;
-                    *input.best_node = input.node;
-                    *input.best_node_num_leaves = num_leaves; 
-                    *input.best_j = input.j;
-                    *input.has_unique = has_unique;
-                }
-            }
-            else if ((*input.best_node)->parent == input.node) {
-                if (num_leaves >= 2*(*input.best_node_num_leaves)) {
-                    *input.best_set_difference = set_difference;
-                    *input.best_node = input.node;
-                    *input.best_node_num_leaves = num_leaves; 
-                    *input.best_j = input.j;
-                    *input.has_unique = has_unique;
-                }
-            }
-            else if ((num_leaves > *input.best_node_num_leaves) || ((num_leaves == *input.best_node_num_leaves) && (*input.best_j < input.j))) {
+            if ((num_anc_mut < *input.best_node_num_anc_mut) || ((num_anc_mut == *input.best_node_num_anc_mut) && (*input.best_j < input.j))) {
                 *input.best_set_difference = set_difference;
                 *input.best_node = input.node;
-                *input.best_node_num_leaves = num_leaves; 
+                *input.best_node_num_anc_mut = num_anc_mut; 
                 *input.best_j = input.j;
                 *input.has_unique = has_unique;
             }
@@ -391,8 +373,7 @@ void mapper2_body(mapper2_input& input) {
             input.best_j_vec->emplace_back(input.j);
 #endif
         }
+        data_lock.unlock();
     }
-
-    data_lock.unlock();
 }
 

@@ -124,11 +124,14 @@ int main(int argc, char** argv){
         return 1;
     }
 
+
     Timer timer; 
 
     omp_lock_t omplock;
     omp_set_num_threads(num_threads);
     omp_init_lock(&omplock);
+        
+    tbb::task_scheduler_init init(num_threads);
 
 #if SAVE_PROFILE == 1
     Instrumentor::Get().BeginSession("test-main", "p1.json");
@@ -176,8 +179,6 @@ int main(int argc, char** argv){
 
         fprintf(stderr, "Computing parsimonious assignments for input variants.\n"); 
         timer.Start();
-
-        tbb::task_scheduler_init init(num_threads);
 
         tbb::flow::graph mapper_graph;
 
@@ -394,11 +395,11 @@ int main(int argc, char** argv){
 
             auto dfs = T.depth_first_expansion();
             size_t total_nodes = dfs.size();
-                        
+            
             std::vector<std::vector<mutation>> node_excess_mutations(total_nodes);
             std::vector<std::vector<mutation>> node_imputed_mutations(total_nodes);
 
-            size_t best_node_num_leaves = 0;
+            size_t best_node_num_anc_mut = 1e9;
             int best_set_difference = 1e9;
             size_t best_j = 0;
             size_t num_best = 1;
@@ -410,34 +411,34 @@ int main(int argc, char** argv){
             best_j_vec.emplace_back(0);
 #endif
 
-            tbb::parallel_for( tbb::blocked_range<size_t>(0, total_nodes, 200),
+            auto grain_size = 400; 
+            tbb::parallel_for( tbb::blocked_range<size_t>(0, total_nodes, grain_size),
                     [&](tbb::blocked_range<size_t> r){
 
                     for (size_t k=r.begin(); k<r.end(); ++k){
-                    mapper2_input inp;
-                    inp.T = &T;
-                    inp.node = dfs[k];
-                    inp.node_mutations = &node_mutations;
-                    inp.missing_sample_mutations = &missing_sample_mutations[s];
-                    inp.excess_mutations = &node_excess_mutations[k];
-                    inp.imputed_mutations = &node_imputed_mutations[k];
-                    inp.best_node_num_leaves = &best_node_num_leaves;
-                    inp.best_set_difference = &best_set_difference;
-                    inp.best_node = &best_node;
-                    inp.best_j =  &best_j;
-                    inp.num_best = &num_best;
-                    inp.j = k;
-                    inp.has_unique = &best_node_has_unique;
+                        mapper2_input inp;
+                        inp.T = &T;
+                        inp.node = dfs[k];
+                        inp.node_mutations = &node_mutations;
+                        inp.missing_sample_mutations = &missing_sample_mutations[s];
+                        inp.excess_mutations = &node_excess_mutations[k];
+                        inp.imputed_mutations = &node_imputed_mutations[k];
+                        inp.best_node_num_anc_mut = &best_node_num_anc_mut;
+                        inp.best_set_difference = &best_set_difference;
+                        inp.best_node = &best_node;
+                        inp.best_j =  &best_j;
+                        inp.num_best = &num_best;
+                        inp.j = k;
+                        inp.has_unique = &best_node_has_unique;
 #if DEBUG == 1
-                    inp.best_j_vec = &best_j_vec;
-                    inp.node_has_unique = &(node_has_unique);
+                        inp.best_j_vec = &best_j_vec;
+                        inp.node_has_unique = &(node_has_unique);
 #endif
 
-                    mapper2_body(inp);
+                        mapper2_body(inp);
                     }       
-                    });
+            }); 
 
-            
             fprintf(stderr, "Current tree size (#nodes): %zu\tMissing sample: %s\tParsimony score: %d\tNumber of parsimony-optimal placements: %zu\n", total_nodes, sample.c_str(), \
                     best_set_difference, num_best);
 

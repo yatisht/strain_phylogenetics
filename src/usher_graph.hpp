@@ -68,7 +68,7 @@ struct mapper2_input {
     std::vector<mutation>* missing_sample_mutations;
     
     int* best_set_difference;
-    size_t* best_node_num_leaves;
+    size_t* best_node_num_anc_mut;
     size_t j;
     size_t* best_j;
     size_t* num_best;
