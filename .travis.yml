@@ -1,13 +1,24 @@
 language: cpp
 
-os: linux
-dist: bionic
- 
 compiler: gcc
 
-before_script:
-  - ./installUbuntu.sh
-    
-script: 
-  - ./build/usher --help
-  - ./build/rotate_trees --help
+jobs:
+  include:
+  - stage: build
+    os: osx
+    osx_image: xcode10.1
+    before_script:
+        - ./installMacOS.sh
+    script:
+      - ./build/usher --help
+      - ./build/rotate_trees --help
+
+  - stage: build
+    os: linux
+    dist: bionic
+
+    before_script:
+        - ./installUbuntu.sh
+    script:
+      - ./build/usher --help
+      - ./build/rotate_trees --help
