@@ -13,9 +13,14 @@ This repository provides tools primarily designed for analyzing Nextstrain (http
     $ pip install treelib numpy==1.14.6 scipy==1.0.1  
 ```
 
-### Install C++ prerequisites and build programs (for Ubuntu-18.04 and above)
+### Install C++ prerequisites and build programs
+* For Ubuntu 18.04 and above:
 ```
-    $ ./installUbuntu.sh 
+    $ ./installUbuntu.sh  
+```
+* For MacOS: 
+```
+    $ ./installMacOS.sh  
 ```
 
 ### Newick and Variant Call Format (VCF) input files
