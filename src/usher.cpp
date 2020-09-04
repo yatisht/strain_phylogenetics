@@ -19,53 +19,36 @@ std::vector<int8_t> get_nuc_id (char c) {
     switch (c) {
         case 'a':
         case 'A': return std::vector<int8_t>{0};
-                  break;
         case 'c':
         case 'C': return std::vector<int8_t>{1};
-                  break;
         case 'g':
         case 'G': return std::vector<int8_t>{2};
-                  break;
         case 't':
         case 'T': return std::vector<int8_t>{3};
-                  break;
         case 'R': return std::vector<int8_t>{0,2};
-                  break;
         case 'Y': return std::vector<int8_t>{1,3};
-                  break;
         case 'S': return std::vector<int8_t>{1,2};
-                  break;
         case 'W': return std::vector<int8_t>{0,3};
-                  break;
         case 'K': return std::vector<int8_t>{2,3};
-                  break;
         case 'M': return std::vector<int8_t>{0,1};
-                  break;
         case 'B': return std::vector<int8_t>{1,2,3};
-                  break;
         case 'D': return std::vector<int8_t>{0,2,3};
-                  break;
         case 'H': return std::vector<int8_t>{0,1,3};
-                  break;
         case 'V': return std::vector<int8_t>{0,1,2};
-                  break;
-        default : return std::vector<int8_t>{0,1,2,3};
-                  break;
+        case 'n':
+        case 'N': return std::vector<int8_t>{0,1,2,3};
+        default: return std::vector<int8_t>{};
+                
     }
 }
 
 char get_nuc_char (int8_t nuc_id) {
     switch (nuc_id) {
         case 0: return 'A';
-                break;
         case 1: return 'C';
-                break;
         case 2: return 'G';
-                break;
         case 3: return 'T';
-                break;
         default : return 'N'; 
-                  break;
     }
 }
 
@@ -364,8 +347,14 @@ int main(int argc, char** argv){
                             int allele_id = std::stoi(words[j]);
                             if (allele_id > 0) { 
                                 std::string allele = alleles[allele_id-1];
-                                for (auto n: get_nuc_id(allele[0])) {
-                                    m.mut_nuc.emplace_back(n);
+                                if (allele[0] == 'N') {
+                                    m.is_missing = true;
+                                }
+                                else {
+                                    m.is_missing = false;
+                                    for (auto n: get_nuc_id(allele[0])) {
+                                        m.mut_nuc.emplace_back(n);
+                                    }
                                 }
                                 (*mutations_iter).emplace_back(m);
                             }
@@ -386,8 +375,27 @@ int main(int argc, char** argv){
     // Timer timer;
 
     if (missing_samples.size() > 0) {
-        fprintf(stderr, "Adding missing samples to the tree.\n");  
+        fprintf(stderr, "Sorting node mutations by positions.\n");  
+        timer.Start();
+#pragma omp parallel for
+        for (size_t k=0; k<node_mutations.size(); k++) {
+            auto iter = node_mutations.begin();
+            std::advance(iter, k);
+            if (!std::is_sorted(iter->second.begin(), iter->second.end(), compare_by_position)) {
+                std::sort(iter->second.begin(), iter->second.end(), compare_by_position); 
+            }
+        }
+#pragma omp parallel for
+        for (size_t k=0; k<missing_samples.size(); k++) {
+            if (!std::is_sorted(missing_sample_mutations[k].begin(), missing_sample_mutations[k].end(), compare_by_position)) {
+                std::sort(missing_sample_mutations[k].begin(), missing_sample_mutations[k].end(), compare_by_position); 
+            }
+        }
+
+        fprintf(stderr, "Completed in %ld msec \n\n", timer.Stop());
         
+        fprintf(stderr, "Adding missing samples to the tree.\n");  
+
         for (size_t s=0; s<missing_samples.size(); s++) {
             timer.Start();
             
@@ -399,7 +407,7 @@ int main(int argc, char** argv){
             std::vector<std::vector<mutation>> node_excess_mutations(total_nodes);
             std::vector<std::vector<mutation>> node_imputed_mutations(total_nodes);
 
-            size_t best_node_num_anc_mut = 1e9;
+            size_t best_node_num_leaves = 0;
             int best_set_difference = 1e9;
             size_t best_j = 0;
             size_t num_best = 1;
@@ -423,7 +431,7 @@ int main(int argc, char** argv){
                         inp.missing_sample_mutations = &missing_sample_mutations[s];
                         inp.excess_mutations = &node_excess_mutations[k];
                         inp.imputed_mutations = &node_imputed_mutations[k];
-                        inp.best_node_num_anc_mut = &best_node_num_anc_mut;
+                        inp.best_node_num_leaves = &best_node_num_leaves;
                         inp.best_set_difference = &best_set_difference;
                         inp.best_node = &best_node;
                         inp.best_j =  &best_j;
@@ -586,12 +594,21 @@ int main(int argc, char** argv){
                     }
 
                     if (common_mut.size() > 0) {
+                        if (!std::is_sorted(common_mut.begin(), common_mut.end(), compare_by_position)) {
+                            std::sort(common_mut.begin(), common_mut.end(), compare_by_position);
+                        }
                         node_mutations[T.get_node(nid)] = common_mut;
                     }
                     if (l1_mut.size() > 0) {
+                        if (!std::is_sorted(l1_mut.begin(), l1_mut.end(),compare_by_position)) {
+                            std::sort(l1_mut.begin(), l1_mut.end(),compare_by_position); 
+                        }
                         node_mutations[T.get_node(best_node->identifier)] = l1_mut;
                     }
                     if (l2_mut.size() > 0) {
+                        if (!std::is_sorted(l2_mut.begin(), l2_mut.end(), compare_by_position)) {
+                            std::sort(l2_mut.begin(), l2_mut.end(), compare_by_position); 
+                        }
                         node_mutations[T.get_node(sample)] = l2_mut;
                     }
                 }
@@ -634,6 +651,7 @@ int main(int argc, char** argv){
                             node_mut.emplace_back(m);
                         }
                     }
+                    std::sort(node_mut.begin(), node_mut.end(), compare_by_position); 
                     node_mutations[node] = node_mut;
                 }
 
@@ -844,7 +862,7 @@ int main(int argc, char** argv){
             }
             
             for (auto anc: T.rsearch(missing_samples[i])) {
-                size_t num_leaves = T.get_leaves(anc->identifier).size();
+                size_t num_leaves = T.get_num_leaves(anc);
                 if (num_leaves < print_subtrees_size) {
                     continue;
                 }

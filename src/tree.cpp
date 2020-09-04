@@ -57,6 +57,21 @@ std::vector<Node*> Tree::get_leaves() {
     return leaves;
 }
 
+size_t Tree::get_num_leaves(Node* node) {
+    if (node->is_leaf()) {
+        return 1;
+    }
+    size_t num_leaves = 0;
+    for (auto c: node->children) {
+        num_leaves += get_num_leaves(c);
+    }
+    return num_leaves;
+}
+
+size_t Tree::get_num_leaves() {
+    return get_num_leaves(root);
+}
+
 std::vector<Node*> Tree::get_leaves(std::string nid) {
     std::vector<Node*> leaves;
     Node* node = all_nodes[nid];

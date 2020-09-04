@@ -50,8 +50,14 @@ int mapper_body::operator()(mapper_input input) {
                     m.chrom = input.chrom;
                     m.position = input.variant_pos;
                     m.ref_nuc = input.ref_nuc;
-                    for (auto n: nucs) {
-                        m.mut_nuc.emplace_back(n);
+                    if (nucs.size() == 4) {
+                        m.is_missing = true;
+                    }
+                    else {
+                        m.is_missing = false;
+                        for (auto n: nucs) {
+                            m.mut_nuc.emplace_back(n);
+                        }
                     }
                     (*mutations_iter).emplace_back(m);
                     data_lock.unlock();
@@ -166,18 +172,31 @@ void mapper2_body(mapper2_input& input) {
     bool has_unique = false;
     int node_num_mut = 0;
     int num_common_mut = 0;
-    size_t num_anc_mut = 0;
+
+#if DEBUG == 1
+    assert (std::is_sorted((*input.missing_sample_mutations).begin(), (*input.missing_sample_mutations).end(), compare_by_position));
+#endif
 
     if (!input.node->is_root()) {
         if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
+            size_t start_index = 0;
+#if DEBUG == 1
+            assert(std::is_sorted((*input.node_mutations)[input.node].begin(), (*input.node_mutations)[input.node].end(), compare_by_position);
+#endif
             for (auto m1: (*input.node_mutations)[input.node]) {
                 node_num_mut++;
                 auto anc_nuc = m1.mut_nuc[0];
                 bool found = false;
                 bool found_pos = false;
-                for (auto m2: (*input.missing_sample_mutations)) {
+                for (size_t k = start_index; k < input.missing_sample_mutations->size(); k++) {
+                    auto m2 = (*input.missing_sample_mutations)[k];
+                    start_index = k;
                     if (m1.position == m2.position) {
                         found_pos = true;
+                        if (m2.is_missing) {
+                            found = true;
+                            break;
+                        }
                         for (auto nuc: m2.mut_nuc) {
                             if (nuc == anc_nuc) {
                                 mutation m;
@@ -198,6 +217,9 @@ void mapper2_body(mapper2_input& input) {
                                 break;
                             }
                         }
+                    }
+                    if (m1.position < m2.position) {
+                        break;
                     }
                 }
                 if (!found) {
@@ -236,12 +258,17 @@ void mapper2_body(mapper2_input& input) {
                     ancestral_mutations.emplace_back(m);
                     anc_positions.emplace_back(m.position);
                 }
-                num_anc_mut++;
             }
         }
     }
 
+    std::sort(ancestral_mutations.begin(), ancestral_mutations.end(), compare_by_position);
+
     for (auto m1: (*input.missing_sample_mutations)) {
+        if (m1.is_missing) {
+            continue;
+        }
+        size_t start_index = 0;
         bool found_pos = false;
         bool found = false;
         bool has_ref = false;
@@ -251,7 +278,9 @@ void mapper2_body(mapper2_input& input) {
                 has_ref = true;
             }
         }
-        for (auto m2: ancestral_mutations) {
+        for (size_t k = start_index; k < ancestral_mutations.size(); k++) {
+            auto m2 = ancestral_mutations[k];
+            start_index = k;
             if (m1.position == m2.position) {
                 found_pos = true;
                 anc_nuc = m2.mut_nuc[0];
@@ -309,12 +338,19 @@ void mapper2_body(mapper2_input& input) {
     }
 
     for (auto m1: ancestral_mutations) {
+        size_t start_index = 0;
         bool found = false;
         bool found_pos = false;
         auto anc_nuc = m1.mut_nuc[0];
-        for (auto m2: (*input.missing_sample_mutations)) {
+        for (size_t k = start_index; k < input.missing_sample_mutations->size(); k++) {
+            auto m2 = (*input.missing_sample_mutations)[k];
+            start_index = k;
             if (m1.position == m2.position) {
                 found_pos = true;
+                if (m2.is_missing) {
+                    found = true;
+                    break;
+                }
                 for (auto nuc: m2.mut_nuc) {
                     if (nuc == anc_nuc) {
                         found = true;
@@ -346,10 +382,15 @@ void mapper2_body(mapper2_input& input) {
     if ((has_unique && !input.node->is_leaf() && (num_common_mut > 0) && (node_num_mut != num_common_mut)) || \
             (input.node->is_leaf() && (num_common_mut > 0)) || (!has_unique && !input.node->is_leaf() && (node_num_mut == num_common_mut))) { 
         data_lock.lock();
+        if (set_difference > *input.best_set_difference) {
+            data_lock.unlock();
+            return;
+        }
+        size_t num_leaves = input.T->get_num_leaves(input.node);
         if (set_difference < *input.best_set_difference) {
             *input.best_set_difference = set_difference;
             *input.best_node = input.node;
-            *input.best_node_num_anc_mut = num_anc_mut;
+            *input.best_node_num_leaves = num_leaves; 
             *input.best_j = input.j;
             *input.num_best = 1;
             *input.has_unique = has_unique;
@@ -360,10 +401,19 @@ void mapper2_body(mapper2_input& input) {
 #endif
         }
         else if (set_difference == *input.best_set_difference) {
-            if ((num_anc_mut < *input.best_node_num_anc_mut) || ((num_anc_mut == *input.best_node_num_anc_mut) && (*input.best_j < input.j))) {
+            //bool is_best_node_ancestor = (*input.best_j > input.j) ? input.T->is_ancestor((*input.best_node)->identifier, input.node->identifier) : false;
+            //bool is_best_node_descendant = (*input.best_j < input.j) ? input.T->is_ancestor(input.node->identifier, (*input.best_node)->identifier) : false;
+            bool is_best_node_ancestor = (input.node->parent == (*input.best_node)); 
+            bool is_best_node_descendant = ((*input.best_node)->parent == input.node); 
+            
+            if ((is_best_node_ancestor && (2*num_leaves > *input.best_node_num_leaves)) ||
+                    (is_best_node_descendant && (num_leaves >= 2*(*input.best_node_num_leaves))) ||
+                    (!is_best_node_ancestor && !is_best_node_descendant && (num_leaves > *input.best_node_num_leaves)) ||
+                    (!is_best_node_ancestor && !is_best_node_descendant && (num_leaves == *input.best_node_num_leaves) && (*input.best_j < input.j))) 
+            {
                 *input.best_set_difference = set_difference;
                 *input.best_node = input.node;
-                *input.best_node_num_anc_mut = num_anc_mut; 
+                *input.best_node_num_leaves = num_leaves; 
                 *input.best_j = input.j;
                 *input.has_unique = has_unique;
             }

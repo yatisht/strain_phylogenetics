@@ -38,8 +38,13 @@ struct mutation {
     int position;
     int8_t ref_nuc;
     int8_t par_nuc;
+    bool is_missing;
     std::vector<int8_t> mut_nuc;
 };
+
+static inline bool compare_by_position (const mutation & a, const mutation& b) { 
+    return a.position < b.position; 
+}
 
 struct mapper_input {
     Tree* T;
@@ -68,7 +73,7 @@ struct mapper2_input {
     std::vector<mutation>* missing_sample_mutations;
     
     int* best_set_difference;
-    size_t* best_node_num_anc_mut;
+    size_t* best_node_num_leaves;
     size_t j;
     size_t* best_j;
     size_t* num_best;

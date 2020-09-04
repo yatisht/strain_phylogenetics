@@ -45,6 +45,8 @@ class Tree {
         void rename_node(std::string old_nid, std::string new_nid);
         std::vector<Node*> get_leaves();
         std::vector<Node*> get_leaves(std::string nid);
+        size_t get_num_leaves(Node* node);
+        size_t get_num_leaves();
         void create_node (std::string identifier, float branch_length = -1.0);
         void create_node (std::string identifier, std::string parent_id, float branch_length = -1.0);
         Node* get_node (std::string identifier);
