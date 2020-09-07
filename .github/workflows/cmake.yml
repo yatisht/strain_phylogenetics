@@ -20,7 +20,6 @@ jobs:
     - name: install pre-reqs, build and test
     shell: bash
       working-directory: ${{runner.workspace}}
-      run: 
-      ./installUbuntu.sh
+      run: ./installUbuntu.sh
       ./build/usher --help
       
