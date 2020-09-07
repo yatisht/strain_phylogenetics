@@ -1,0 +1,26 @@
+name: CMake-build
+
+on: 
+  pull_request:
+  push:
+    branches: 
+      - master
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    name: test-build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: install pre-reqs, build and test
+    shell: bash
+      working-directory: ${{runner.workspace}}
+      run: 
+      ./installUbuntu.sh
+      ./build/usher --help
+      
