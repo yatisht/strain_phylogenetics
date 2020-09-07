@@ -10,13 +10,11 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  build:
-    name: test-build
+  test-build:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
-
-    - name: install pre-reqs, build and test
-      run: sudo ./installUbuntu.sh
-      
+    - name: install pre-reqs and build and test
+    - run: sudo ./installUbuntu.sh
+    - run: ./build/usher --help
+    - run: ./build/rotate-trees --help
