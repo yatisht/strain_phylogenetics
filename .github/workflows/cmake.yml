@@ -26,7 +26,7 @@ jobs:
     steps:
     - uses: actions/checkout@master
     - name: install pre-reqs and build
-      run: sudo ./installMacOS.sh
+      run: ./installMacOS.sh
     - name: test
       run: |
         ./build/usher --help
