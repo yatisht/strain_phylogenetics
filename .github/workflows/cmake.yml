@@ -31,3 +31,14 @@ jobs:
       run: |
         ./build/usher --help
         ./build/rotate_trees --help
+
+  macOS-10-13:
+    runs-on: macOS-10.13
+    steps:
+    - uses: actions/checkout@master
+    - name: install pre-reqs and build
+      run: ./installMacOS.sh
+    - name: test
+      run: |
+        ./build/usher --help
+        ./build/rotate_trees --help
