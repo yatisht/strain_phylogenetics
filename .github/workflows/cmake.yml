@@ -10,12 +10,23 @@ env:
   BUILD_TYPE: Release
 
 jobs:
-  test-build:
-    runs-on: ubuntu-latest
+  ubuntu-18-04:
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@master
     - name: install pre-reqs and build
       run: sudo ./installUbuntu.sh
+    - name: test
+      run: |
+        ./build/usher --help
+        ./build/rotate_trees --help
+
+  macOS-10-14:
+    runs-on: macOS-10.14
+    steps:
+    - uses: actions/checkout@master
+    - name: install pre-reqs and build
+      run: sudo ./installMacOS.sh
     - name: test
       run: |
         ./build/usher --help
