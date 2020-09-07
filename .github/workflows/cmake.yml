@@ -13,8 +13,10 @@ jobs:
   test-build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: install pre-reqs and build and test
-    - run: sudo ./installUbuntu.sh
-    - run: ./build/usher --help
-    - run: ./build/rotate-trees --help
+    - uses: actions/checkout@master
+    - name: install pre-reqs and build
+      run: sudo ./installUbuntu.sh
+    - name: test
+      run: |
+        ./build/usher --help
+        ./build/rotate-trees --help
