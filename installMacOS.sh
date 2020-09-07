@@ -1,7 +1,5 @@
-brew install cmake
-brew install boost
-brew install libomp
-brew install protobuf
+xcode-select --install
+brew install cmake boost libomp protobuf
 
 git clone https://github.com/01org/tbb
 mkdir build
