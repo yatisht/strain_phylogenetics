@@ -181,7 +181,7 @@ void mapper2_body(mapper2_input& input) {
         if (input.node_mutations->find(input.node) != input.node_mutations->end()) {
             size_t start_index = 0;
 #if DEBUG == 1
-            assert(std::is_sorted((*input.node_mutations)[input.node].begin(), (*input.node_mutations)[input.node].end(), compare_by_position);
+            assert(std::is_sorted((*input.node_mutations)[input.node].begin(), (*input.node_mutations)[input.node].end(), compare_by_position));
 #endif
             for (auto m1: (*input.node_mutations)[input.node]) {
                 node_num_mut++;
