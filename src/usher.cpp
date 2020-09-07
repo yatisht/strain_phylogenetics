@@ -108,6 +108,8 @@ int main(int argc, char** argv){
     }
 
 
+    fprintf(stderr, "Initializing %u worker threads.\n\n", num_threads);
+
     Timer timer; 
 
     omp_lock_t omplock;
