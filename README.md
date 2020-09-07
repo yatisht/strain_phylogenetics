@@ -4,7 +4,7 @@
 [license-link]: https://opensource.org/licenses/MIT
 
 [![License][license-badge]][license-link]
-![Build Status](https://github.com/yatisht/strain_phylogenetics/workflows/CMake-build/badge.svg)
+[![Build Status](https://github.com/yatisht/strain_phylogenetics/workflows/CMake-build/badge.svg)](https://github.com/yatisht/strain_phylogenetics/actions)
 
 This repository provides tools primarily designed for analyzing Nextstrain (http://nextstrain.org/ncov/) and other phylogenies generated for the SARS-CoV-2 genome but is also applicable for other phylogenetic applications. Detailed discussion of the tools can be found in the reference at the bottom of this page. Instructions below demonstrate the usage of these tools through examples.
 
