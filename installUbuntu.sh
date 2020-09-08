@@ -9,7 +9,7 @@ wget https://github.com/oneapi-src/oneTBB/releases/download/2019_U9/tbb2019_2019
 tar -xvzf tbb2019_20191006oss_lin.tgz
 mkdir build
 cd build
-cmake  -DTBB_DIR=${PWD}/../tbb2019_20191006oss  -DTBB_ROOT=${PWD}/../tbb2019_20191006oss .. 
+cmake  -DTBB_DIR=${PWD}/../tbb2019_20191006oss  -DCMAKE_PREFIX_PATH=${PWD}/../tbb2019_20191006oss/cmake ..
 make -j
 cd ..
     
