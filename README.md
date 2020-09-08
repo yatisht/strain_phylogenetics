@@ -57,7 +57,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 ### Plot Extremal Sites  
 ```
     $ python scripts/generate_plot_extremal_sites_data.py -in pruned-sumtree-for-cog_PARSIMONY.txt > plot_extremal_sites_data.txt
-    $ Rscript --vanilla plot_parsimony.r plot_extremal_sites_data.txt extremal_sites_plot.pdf
+    $ Rscript --vanilla scripts/plot_parsimony.r plot_extremal_sites_data.txt extremal_sites_plot.pdf
 ```
 * The above python command first creates raw input data for the extremal sites plot. Next, the R command (which should be executed after installing the *plyr* package) accepts the generated data and creates a log(allele count) by parsimony plot for all variants sites in a given vcf. It produces three plots, one of all data, one ignoring C>U mutations and one ignoring C>U and G>U mutations, as shown below. 
 ![Extremal](/images/extremal.png)
