@@ -11,7 +11,7 @@
 #include <tbb/blocked_range.h>
 #include <tbb/tbb.h>
 #include "usher_graph.hpp"
-#include "src/parsimony.pb.h"
+#include "parsimony.pb.h"
 
 namespace po = boost::program_options;
 
