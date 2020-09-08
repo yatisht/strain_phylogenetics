@@ -80,6 +80,7 @@ int main(int argc, char** argv){
         po::notify(vm);
     }
     catch(std::exception &e){
+        std::cerr << desc << std::endl;
         if(vm.count("help"))
             return 0;
         else
