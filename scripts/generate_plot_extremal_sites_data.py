@@ -42,14 +42,27 @@ if __name__ == "__main__":
                 if 'alt_alleles' in line:
                     words = line.split()
                     site = words[0]
+                    n = 0
+                    s = 0
+                    for w in words:
+                        if 'alt_alleles' in w:
+                            n += int(w.split('=')[1])
+                    for w in words:
+                        if 'parsimony_score' in w:
+                            s += int(w.split('=')[1])
+                            break
+                    s_fwd = 0
+                    for w in words:
+                        if 'clade_sizes' in w:
+                            if (len(w.split('=')) > 1):
+                                s_fwd += len([l for l in \
+                                              w.split('=')[1].split(',') \
+                                              if '[F]' in l])
+                    s_bck = s - s_fwd
                     n = int(words[1].split('=')[1])
                     s = int(words[2].split('=')[1])
                     s_fwd = 0
-                    if (len(words[3].split('=')) > 1):
-                        s_fwd = len(words[3].split('=')[1].split(','))
-                        s_bck = s - s_fwd
-                        if (i == 0):
-                            all_sites[site] = (n, s, s_fwd, s_bck)
+                    all_sites[site] = (n, s, s_fwd, s_bck)
                     if ((i == 0) or ((i == 1) and (not isCtoT(site))) or \
                                      ((i == 2) and (not isGtoT(site)))):
                         sites[i][site] = (n, s, s_fwd, s_bck)

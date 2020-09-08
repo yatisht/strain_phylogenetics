@@ -40,11 +40,11 @@ if(DEFINED Protobuf_PATH)
     protobuf_generate(
         LANGUAGE cpp
         TARGET usher 
-        PROTOS parsimony.proto)
+        PROTOS src/parsimony.proto)
 else()
     protobuf_generate_cpp(
         PROTO_SRCS PROTO_HDRS
-        parsimony.proto)
+        src/parsimony.proto)
 
     add_executable(usher
         src/tree.cpp
@@ -60,6 +60,12 @@ add_executable(rotate_trees
     src/rotate_trees.cpp
     )
 
+add_executable(find_parsimonious_assignments
+    src/tree.cpp
+    src/fpa_mapper.cpp
+    src/fpa_printer.cpp
+    src/find_parsimonious_assignments.cpp
+    )
 
 if(SAVE_PROFILE)
     if(DEBUG)
@@ -74,11 +80,11 @@ else(SAVE_PROFILE)
         TARGET_COMPILE_OPTIONS(usher PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
     endif(DEBUG)
 endif(SAVE_PROFILE)
-        
 TARGET_COMPILE_OPTIONS(rotate_trees PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
+TARGET_COMPILE_OPTIONS(find_parsimonious_assignments PRIVATE -DTBB_SUPPRESS_DEPRECATED_MESSAGES)
 
 TARGET_LINK_LIBRARIES(usher PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS} ${Protobuf_LIBRARIES} OpenMP::OpenMP_CXX)
-
 TARGET_LINK_LIBRARIES(rotate_trees PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS})
+TARGET_LINK_LIBRARIES(find_parsimonious_assignments PRIVATE stdc++  ${Boost_LIBRARIES} ${TBB_IMPORTED_TARGETS})
 
 

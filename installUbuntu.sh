@@ -7,7 +7,7 @@ sudo apt-get --yes install libprotoc-dev libprotoc-dev protobuf-compiler
 
 wget https://github.com/oneapi-src/oneTBB/releases/download/2019_U9/tbb2019_20191006oss_lin.tgz
 tar -xvzf tbb2019_20191006oss_lin.tgz
-mkdir build
+mkdir -p build
 cd build
 cmake  -DTBB_DIR=${PWD}/../tbb2019_20191006oss  -DCMAKE_PREFIX_PATH=${PWD}/../tbb2019_20191006oss/cmake ..
 make -j
