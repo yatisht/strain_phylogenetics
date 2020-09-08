@@ -52,17 +52,28 @@ if __name__ == "__main__":
     saturated_s = {}
     with file(parsimony_filename,'r') as f:
         for line in f:
-            if 'alt_alleles' in line:
+            if 'parsimony_score' in line:
                 words = line.split()
                 site = words[0]
                 if ((ignoreCtoT) and (isCtoT(site)) or \
                     (ignoreGtoT) and (isGtoT(site))):
                     continue
-                n = int(words[1].split('=')[1])
-                s = int(words[2].split('=')[1])
+                n = 0
+                s = 0
+                for w in words:
+                    if 'alt_alleles' in w:
+                        n += int(w.split('=')[1])
+                for w in words:
+                    if 'parsimony_score' in w:
+                        s += int(w.split('=')[1])
+                        break
                 s_fwd = 0
-                if (len(words[3].split('=')) > 1):
-                    s_fwd = len(words[3].split('=')[1].split(','))
+                for w in words:
+                    if 'clade_sizes' in w:
+                        if (len(w.split('=')) > 1):
+                            s_fwd += len([l for l in \
+                                          w.split('=')[1].split(',') \
+                                         if '[F]' in l])
                 s_bck = s - s_fwd
                 sites[site] = (n, s, s_fwd, s_bck)
                 mn = min_n_for_s.get(s, [1e6, []])
