@@ -19,6 +19,17 @@ jobs:
     - name: test
       run: |
         ./build/usher --help
+        ./build/rotate_trees --help  
+  
+  ubuntu-20-04:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@master
+    - name: install pre-reqs and build
+      run: sudo ./installUbuntu.sh
+    - name: test
+      run: |
+        ./build/usher --help
         ./build/rotate_trees --help
 
   macOS-10-14:
