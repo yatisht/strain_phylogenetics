@@ -109,8 +109,8 @@ int main(int argc, char** argv){
     desc.add_options()
         ("T1", po::value<std::string>(&T1_filename)->required(), "Input tree1 file")
         ("T2", po::value<std::string>(&T2_filename)->required(), "Input tree2 file")
-        ("T1_out", po::value<std::string>(&T1_out_filename)->required(), "Input tree1 file")
-        ("T2_out", po::value<std::string>(&T2_out_filename)->required(), "Input tree2 file")
+        ("T1_out", po::value<std::string>(&T1_out_filename)->required(), "Output rotated tree1 file")
+        ("T2_out", po::value<std::string>(&T2_out_filename)->required(), "Output rotated tree2 file")
         ("max_iter", po::value<uint32_t>(&max_iter)->default_value(1e2), "Maximum number of iterations")
         ("help", "Print help messages");
     
