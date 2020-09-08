@@ -1,4 +1,4 @@
-name: CMake-build
+name: build
 
 on: 
   pull_request:
