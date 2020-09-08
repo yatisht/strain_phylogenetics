@@ -1,7 +1,7 @@
 ## Tools for analyzing and comparing SARS-CoV-2 phylogenies
 
 [license-badge]: https://img.shields.io/badge/License-MIT-yellow.svg 
-[license-link]: https://opensource.org/licenses/MIT
+[license-link]: https://github.com/yatisht/strain_phylogenetics/blob/master/LICENSE
 
 [![License][license-badge]][license-link]
 [![Build Status](https://github.com/yatisht/strain_phylogenetics/workflows/build/badge.svg)](https://github.com/yatisht/strain_phylogenetics/actions)
