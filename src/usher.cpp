@@ -67,13 +67,13 @@ int main(int argc, char** argv){
     desc.add_options()
         ("vcf", po::value<std::string>(&vcf_filename)->required(), "Input VCF file (in uncompressed or gzip-compressed format)")
         ("tree", po::value<std::string>(&tree_filename)->default_value(""), "Input tree file")
-        ("load-assignments", po::value<std::string>(&din_filename)->default_value(""), "Load existing tree and parsimonious assignments")
-        ("save-assignments", po::value<std::string>(&dout_filename)->default_value(""), "Save output tree and parsimonious assignments")
+        ("load-assignments", po::value<std::string>(&din_filename)->default_value(""), "Load mutation-annotated tree object")
+        ("save-assignments", po::value<std::string>(&dout_filename)->default_value(""), "Save output mutation-annotated tree object")
         ("threads", po::value<uint32_t>(&num_threads)->default_value(num_cores), "Number of threads")
-        ("collapse-final-tree", po::bool_switch(&collapse_tree), "Collapse internal nodes of the output tree with no mutations.")
-        ("print_uncondensed-final-tree", po::bool_switch(&print_uncondensed_tree), "Print the final tree in uncondensed format.")
+        ("collapse-final-tree", po::bool_switch(&collapse_tree), "Collapse internal nodes of the output tree with no mutations and condense identical sequences")
+        ("print_uncondensed-final-tree", po::bool_switch(&print_uncondensed_tree), "Print the final tree in uncondensed format")
         ("print-subtrees-size", po::value<size_t>(&print_subtrees_size)->default_value(0), \
-         "Print minimum set of subtrees of size equal of larger than this value covering the missing samples.")
+         "Print minimum set of subtrees covering the missing samples of size equal to or larger than this value")
         ("help", "Print help messages");
     
     po::options_description all_options;
