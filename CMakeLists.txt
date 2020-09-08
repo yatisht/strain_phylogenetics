@@ -40,11 +40,11 @@ if(DEFINED Protobuf_PATH)
     protobuf_generate(
         LANGUAGE cpp
         TARGET usher 
-        PROTOS src/parsimony.proto)
+        PROTOS parsimony.proto)
 else()
     protobuf_generate_cpp(
         PROTO_SRCS PROTO_HDRS
-        src/parsimony.proto)
+        parsimony.proto)
 
     add_executable(usher
         src/tree.cpp

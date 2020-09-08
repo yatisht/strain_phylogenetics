@@ -361,6 +361,10 @@ int main(int argc, char** argv){
                                 (*mutations_iter).emplace_back(m);
                             }
                         }
+                        else {
+                            m.is_missing = true;
+                            (*mutations_iter).emplace_back(m);
+                        }
                     }
                 }
             }
