@@ -80,8 +80,10 @@ int main(int argc, char** argv){
         po::notify(vm);
     }
     catch(std::exception &e){
-        std::cout << desc << std::endl;
-        return 1;
+        if(vm.count("help"))
+            return 0;
+        else
+            return 1;
     }
 
     Tree T = TreeLib::create_tree_from_newick(tree_filename);
