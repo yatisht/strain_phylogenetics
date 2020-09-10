@@ -14,13 +14,17 @@ This repository provides tools primarily designed for analyzing Nextstrain (http
 ```
 
 ### Install C++ prerequisites and build programs
+* For MacOS 10.14 and above: 
+```
+    $ ./installMacOS.sh  
+```
 * For Ubuntu 18.04 and above:
 ```
     $ ./installUbuntu.sh  
 ```
-* For MacOS: 
+* For CentOS 7 and above: 
 ```
-    $ ./installMacOS.sh  
+    $ ./installCentOS.sh  
 ```
 
 ### Newick and Variant Call Format (VCF) input files
