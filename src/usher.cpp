@@ -352,9 +352,15 @@ int main(int argc, char** argv){
                                     m.is_missing = true;
                                 }
                                 else {
-                                    m.is_missing = false;
-                                    for (auto n: get_nuc_id(allele[0])) {
-                                        m.mut_nuc.emplace_back(n);
+                                    auto nucs = get_nuc_id(allele[0]);
+                                    if (nucs.size() == 4) {
+                                        m.is_missing = true;
+                                    }
+                                    else {
+                                        m.is_missing = false;
+                                        for (auto n: nucs) {
+                                            m.mut_nuc.emplace_back(n);
+                                        }
                                     }
                                 }
                                 (*mutations_iter).emplace_back(m);
