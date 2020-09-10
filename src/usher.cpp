@@ -37,8 +37,7 @@ std::vector<int8_t> get_nuc_id (char c) {
         case 'V': return std::vector<int8_t>{0,1,2};
         case 'n':
         case 'N': return std::vector<int8_t>{0,1,2,3};
-        default: return std::vector<int8_t>{};
-                
+        default: return std::vector<int8_t>{0,1,2,3};
     }
 }
 
