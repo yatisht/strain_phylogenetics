@@ -45,6 +45,7 @@ jobs:
         ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help
+        python2 scripts/tree_merge.py -h
 
   macOS-10-15:
     runs-on: macOS-10.15
