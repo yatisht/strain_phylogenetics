@@ -4,6 +4,9 @@ sudo apt-get --yes install cmake
 sudo apt-get --yes install libboost-all-dev
 sudo apt-get --yes install libomp-dev
 sudo apt-get --yes install libprotoc-dev libprotoc-dev protobuf-compiler
+sudo apt-get --yes install python  python-pip
+
+pip2 install treelib scipy numpy
 
 wget https://github.com/oneapi-src/oneTBB/releases/download/2019_U9/tbb2019_20191006oss_lin.tgz
 tar -xvzf tbb2019_20191006oss_lin.tgz
