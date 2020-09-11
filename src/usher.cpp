@@ -466,6 +466,9 @@ int main(int argc, char** argv){
             fprintf (stderr, "Sample mutations:\t");
             if (missing_sample_mutations[s].size() > 0) {
                 for (auto m: missing_sample_mutations[s]) {
+                    if (m.is_missing) {
+                        continue;
+                    }
                     fprintf(stderr, "|%s", (get_nuc_char(m.par_nuc) + std::to_string(m.position)).c_str());
                     for (size_t c_size =0; c_size < m.mut_nuc.size(); c_size++) {
                         fprintf(stderr, "%c", get_nuc_char(m.mut_nuc[c_size]));
