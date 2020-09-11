@@ -10,7 +10,7 @@ This repository provides tools primarily designed for analyzing Nextstrain (http
 
 ### Clone the repository
 ```
-    $ git clone https://github.com/yatisht/strain_phylogenetics
+    $ git clone https://github.com/yatisht/strain_phylogenetics.git
     $ cd strain_phylogenetics
 ```
 
