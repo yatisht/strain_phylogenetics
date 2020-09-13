@@ -1,4 +1,6 @@
-brew install cmake boost libomp protobuf
+brew install cmake boost libomp protobuf wget python@2
+
+pip2 install treelib numpy scipy
 
 wget https://github.com/oneapi-src/oneTBB/releases/download/2019_U9/tbb2019_20191006oss_mac.tgz
 tar -xvzf tbb2019_20191006oss_mac.tgz

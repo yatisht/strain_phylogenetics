@@ -37,8 +37,7 @@ std::vector<int8_t> get_nuc_id (char c) {
         case 'V': return std::vector<int8_t>{0,1,2};
         case 'n':
         case 'N': return std::vector<int8_t>{0,1,2,3};
-        default: return std::vector<int8_t>{};
-                
+        default: return std::vector<int8_t>{0,1,2,3};
     }
 }
 
@@ -353,9 +352,15 @@ int main(int argc, char** argv){
                                     m.is_missing = true;
                                 }
                                 else {
-                                    m.is_missing = false;
-                                    for (auto n: get_nuc_id(allele[0])) {
-                                        m.mut_nuc.emplace_back(n);
+                                    auto nucs = get_nuc_id(allele[0]);
+                                    if (nucs.size() == 4) {
+                                        m.is_missing = true;
+                                    }
+                                    else {
+                                        m.is_missing = false;
+                                        for (auto n: nucs) {
+                                            m.mut_nuc.emplace_back(n);
+                                        }
                                     }
                                 }
                                 (*mutations_iter).emplace_back(m);
@@ -461,6 +466,9 @@ int main(int argc, char** argv){
             fprintf (stderr, "Sample mutations:\t");
             if (missing_sample_mutations[s].size() > 0) {
                 for (auto m: missing_sample_mutations[s]) {
+                    if (m.is_missing) {
+                        continue;
+                    }
                     fprintf(stderr, "|%s", (get_nuc_char(m.par_nuc) + std::to_string(m.position)).c_str());
                     for (size_t c_size =0; c_size < m.mut_nuc.size(); c_size++) {
                         fprintf(stderr, "%c", get_nuc_char(m.mut_nuc[c_size]));

@@ -21,6 +21,10 @@ jobs:
         ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help  
+        python2 scripts/compute_entropy_weighted_tree_distance.py -h
+        python2 scripts/generate_plot_extremal_sites_data.py -h 
+        python2 scripts/identify_extremal_sites.py -h
+        python2 scripts/tree_merge.py -h
   
   ubuntu-20-04:
     runs-on: ubuntu-20.04
@@ -33,6 +37,10 @@ jobs:
         ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help
+        python2 scripts/compute_entropy_weighted_tree_distance.py -h
+        python2 scripts/generate_plot_extremal_sites_data.py -h 
+        python2 scripts/identify_extremal_sites.py -h
+        python2 scripts/tree_merge.py -h
 
   macOS-10-14:
     runs-on: macOS-10.14
@@ -45,6 +53,10 @@ jobs:
         ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help
+        python2 scripts/compute_entropy_weighted_tree_distance.py -h
+        python2 scripts/generate_plot_extremal_sites_data.py -h 
+        python2 scripts/identify_extremal_sites.py -h
+        python2 scripts/tree_merge.py -h
 
   macOS-10-15:
     runs-on: macOS-10.15
@@ -57,3 +69,7 @@ jobs:
         ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help
+        python2 scripts/compute_entropy_weighted_tree_distance.py -h
+        python2 scripts/generate_plot_extremal_sites_data.py -h 
+        python2 scripts/identify_extremal_sites.py -h
+        python2 scripts/tree_merge.py -h

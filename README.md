@@ -8,12 +8,13 @@
 
 This repository provides tools primarily designed for analyzing Nextstrain (http://nextstrain.org/ncov/) and other phylogenies generated for the SARS-CoV-2 genome but is also applicable for other phylogenetic applications. Detailed discussion of the tools can be found in the reference at the bottom of this page. Instructions below demonstrate the usage of these tools through examples.
 
-### Install python prerequisites using pip
+### Clone the repository
 ```
-    $ pip install treelib numpy==1.14.6 scipy==1.0.1  
+    $ git clone https://github.com/yatisht/strain_phylogenetics.git
+    $ cd strain_phylogenetics
 ```
 
-### Install C++ prerequisites and build programs
+### Install prerequisites and build programs
 * For MacOS 10.14 and above: 
 ```
     $ ./installMacOS.sh  
@@ -50,25 +51,26 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 
 ### Identify extremal sites   
 ```
-    $ python scripts/identify_extremal_sites.py -in pruned-sumtree-for-cog_PARSIMONY.txt
+    $ python2 scripts/identify_extremal_sites.py -in pruned-sumtree-for-cog_PARSIMONY.txt
 ```
 * The above can be used for identifying and flagging extremal sites i.e. sites having exceptional parsimony scores relative to their allele frequencies and therefore also suspected to contain systematic errors. The above command identifies 6 extremal sites (C11074T, C27046T, T13402G, A3778G, G24390C, G26144T) with a phylogenetic instability value of 3.03. For the precise definition of extremal sites and phylogenetic instability, refer to our manuscript referenced at the bottom. The code also provides an ability to ignore high-frequency C\>T and G\>T mutations using optional flags.
 ```
-    $ python scripts/identify_extremal_sites.py -in pruned-sumtree-for-cog_PARSIMONY.txt -ignoreCtoT=1 -ignoreGtoT=1
+    $ python2 scripts/identify_extremal_sites.py -in pruned-sumtree-for-cog_PARSIMONY.txt -ignoreCtoT=1 -ignoreGtoT=1
 ```
 * The above command identifies three extremal sites (T13402G, A3778G, G24390C) with a phylogenetic instability value of 2.32.
 
 ### Plot Extremal Sites  
+* Plotting extremal sites requires [installing R](https://docs.rstudio.com/resources/install-r/) and the [plyr](https://www.rdocumentation.org/packages/plyr) package. 
 ```
-    $ python scripts/generate_plot_extremal_sites_data.py -in pruned-sumtree-for-cog_PARSIMONY.txt > plot_extremal_sites_data.txt
+    $ python2 scripts/generate_plot_extremal_sites_data.py -in pruned-sumtree-for-cog_PARSIMONY.txt > plot_extremal_sites_data.txt
     $ Rscript --vanilla scripts/plot_parsimony.r plot_extremal_sites_data.txt extremal_sites_plot.pdf
 ```
-* The above python command first creates raw input data for the extremal sites plot. Next, the R command (which should be executed after installing the *plyr* package) accepts the generated data and creates a log(allele count) by parsimony plot for all variants sites in a given vcf. It produces three plots, one of all data, one ignoring C>U mutations and one ignoring C>U and G>U mutations, as shown below. 
+* The above command first creates raw input data for the extremal sites plot. Next, the R command accepts the generated data and creates a log(allele count) by parsimony plot for all variants sites in a given vcf. It produces three plots, one of all data, one ignoring C>U mutations and one ignoring C>U and G>U mutations, as shown below. 
 ![Extremal](/images/extremal.png)
 
 ### Compute distances between tree pairs
 ```
-    $ python scripts/compute_entropy_weighted_tree_distance.py -T1 tree/pruned-cog-for-sumtree.nh  -T2 tree/pruned-sumtree-for-cog.nh -CORES=2 > dist_pruned-cog-for-sumtree_pruned-sumtree-for-cog.txt
+    $ python2 scripts/compute_entropy_weighted_tree_distance.py -T1 tree/pruned-cog-for-sumtree.nh  -T2 tree/pruned-sumtree-for-cog.nh -CORES=2 > dist_pruned-cog-for-sumtree_pruned-sumtree-for-cog.txt
 ```
 * The above command computes the entropy-weighted total distance (asymmetric and symmetric) between two trees pruned to contain a common set of 422 SARS-CoV-2 samples: the [COG-UK](https://www.cogconsortium.uk/data/) tree from April 24, 2020 and a consensus tree made using the [SumTrees](https://dendropy.org/programs/sumtrees.html) tool from 31 Nextstrain trees generated between March 23 and April 30, 2020. For detailed description of the distance metric, refer to our manuscript referenced at the bottom. The distance values are printed in the bottom 3 lines of the output file.
 ```
@@ -97,7 +99,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 
 ### Pairwise merging of trees 
 ```
-    $ python scripts/tree_merge.py -T1 tree/pruned-sumtree-for-cog.nh -T2 tree/pruned-cog-for-sumtree.nh -symmetric 1 -T_out symm-merged-sumtree-cog.nh  
+    $ python2 scripts/tree_merge.py -T1 tree/pruned-sumtree-for-cog.nh -T2 tree/pruned-cog-for-sumtree.nh -symmetric 1 -T_out symm-merged-sumtree-cog.nh  
 ```
 * The above command produces a merged tree (symm-merged-sumtree-cog.nh) from two input trees (pruned-sumtree-for-cog.nh and pruned-cog-for-sumtree.nh) that is maximally resolved and compatible with both input trees (refer to our manuscript referenced at the bottom for more details).  Below are the resulting tanglegrams of the resulting merged tree with the two input trees (after applying tree rotation). The above command can also be used without the symmetric flag for its asymmetric version (where first input tree is given a priority to resolve the merged tree) or using the intersectOnly flag that produces a simple consensus of the two input trees.  
 
