@@ -195,30 +195,32 @@ void mapper2_body(mapper2_input& input) {
                         found_pos = true;
                         if (m2.is_missing) {
                             found = true;
-                            break;
+                            num_common_mut++;
                         }
-                        for (auto nuc: m2.mut_nuc) {
-                            if (nuc == anc_nuc) {
-                                mutation m;
-                                m.chrom = m1.chrom;
-                                m.position = m1.position;
-                                m.ref_nuc = m1.ref_nuc;
-                                m.par_nuc = m1.par_nuc;
-                                m.mut_nuc.emplace_back(anc_nuc);
+                        else {
+                            for (auto nuc: m2.mut_nuc) {
+                                if (nuc == anc_nuc) {
+                                    mutation m;
+                                    m.chrom = m1.chrom;
+                                    m.position = m1.position;
+                                    m.ref_nuc = m1.ref_nuc;
+                                    m.par_nuc = m1.par_nuc;
+                                    m.mut_nuc.emplace_back(anc_nuc);
 
-                                ancestral_mutations.emplace_back(m);
-                                anc_positions.emplace_back(m1.position);
-                                (*input.excess_mutations).emplace_back(m);
-                                if (m2.mut_nuc.size() > 1) {
-                                    (*input.imputed_mutations).emplace_back(m);
+                                    ancestral_mutations.emplace_back(m);
+                                    anc_positions.emplace_back(m1.position);
+                                    (*input.excess_mutations).emplace_back(m);
+                                    if (m2.mut_nuc.size() > 1) {
+                                        (*input.imputed_mutations).emplace_back(m);
+                                    }
+                                    found = true;
+                                    num_common_mut++;
+                                    break;
                                 }
-                                found = true;
-                                num_common_mut++;
-                                break;
                             }
                         }
                     }
-                    if (m1.position < m2.position) {
+                    if (m1.position <= m2.position) {
                         break;
                     }
                 }
