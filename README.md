@@ -17,7 +17,7 @@ This repository provides tools primarily designed for analyzing Nextstrain (http
 ### Install prerequisites and build programs
 * Perhaps the simplest build process for this repo is using [Docker](https://docs.docker.com/get-docker/). The following two commands would build the programs and start a new bash in an Ubuntu 18.04 container following which the remaning commands on this page should work smoothly.
 ```
-    $ docker build --no-cache -t strain_phylogenetics .
+    $ docker build -t strain_phylogenetics .
     $ docker run -t -i strain_phylogenetics /bin/bash
 ```
 * We also provide installation scipts for **MacOS (10.14 and above)**, **Ubuntu (18.04 and above)** and **CentOS (7 and above)** if you don't have Docker or prefer not to use it for some reason. 
