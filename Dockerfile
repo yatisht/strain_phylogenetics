@@ -9,3 +9,5 @@ RUN apt-get update && apt-get install -yq --no-install-recommends \
 RUN git clone https://github.com/yatisht/strain_phylogenetics.git 
 WORKDIR strain_phylogenetics
 RUN ./installUbuntu.sh 
+## set the path
+ENV PATH="/HOME/strain_phylogenetics/build/:${PATH}"
