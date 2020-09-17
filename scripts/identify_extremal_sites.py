@@ -16,8 +16,8 @@ def isRare(n,cutoff):
 def isExtremal (s, n, cutoff, min_n_for_s, max_s_for_n):
     return ((n > cutoff) and (n==min_n_for_s[s][0]) and \
             (s==max_s_for_n[n][0]) and \
-            all([(s>v[0]) for (k,v) in max_s_for_n.items() if (k<n)]) and \
-            all([(n<v[0]) for (k,v) in min_n_for_s.items() if (k>s)]))
+            all([(s>v[0]) for (k,v) in list(max_s_for_n.items()) if (k<n)]) and \
+            all([(n<v[0]) for (k,v) in list(min_n_for_s.items()) if (k>s)]))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Identify extremal sites ')
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     x = []
     y = []
     saturated_s = {}
-    with file(parsimony_filename,'r') as f:
+    with open(parsimony_filename,'r') as f:
         for line in f:
             if 'parsimony_score' in line:
                 words = line.split()
@@ -91,17 +91,18 @@ if __name__ == "__main__":
                 if s > ms[0]:
                     max_s_for_n[n] = [s, [site]]
     
-    cutoff = max([k for (k,v) in saturated_s.items() if (v>1)])
+    cutoff = max([k for (k,v) in list(saturated_s.items()) if (v>1)])
     log_base = 2
-    for site in sites.keys():
+    for site in list(sites.keys()):
         (n,s,s_fwd, s_bck) = sites[site]
         if (isExtremal(s, n, cutoff, min_n_for_s, max_s_for_n)):
-            print site, 'alt_alleles='+str(n), 'parsimony_score='+str(s),\
+            print(site, 'alt_alleles='+str(n), 'parsimony_score='+str(s),\
                     'parsimony_score_forward='+str(s_fwd),\
-                    'parsimony_score_backward='+str(s_bck)
+                    'parsimony_score_backward='+str(s_bck))
             x.append(math.log(n,log_base))
             y.append(s)
 
     m,b = np.polyfit(np.array(x), np.array(y), 1)
-    print '\nPhylogenetic instability (log-' + str(log_base)+' slope) =', m
+    print('\nPhylogenetic instability (log-' + str(log_base)+' slope) =', m)
     
+

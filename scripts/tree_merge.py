@@ -95,7 +95,7 @@ def get_newick_string (tree):
     return newick_string
 
 def get_all_node_ids (tree):
-    return tree.nodes.keys()
+    return list(tree.nodes.keys())
 
 def get_internal_node_ids (tree):
     all_node_ids = set(get_all_node_ids(tree))
@@ -236,7 +236,7 @@ if __name__ == "__main__":
         symmetric == '0'
 
     if (symmetric == '1') and (intersectOnly == '1'):
-        print 'ERROR: intersectOnly and symmetric options cannot be used together.'
+        print('ERROR: intersectOnly and symmetric options cannot be used together.')
         sys.exit(1)
     
     T1 = create_tree(T1_filename)
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     T2_leaves = set(get_leaf_node_ids(T2))
 
     if len(T1_leaves.symmetric_difference(T2_leaves)) != 0:
-        print 'ERROR: T1 and T2 should have the same leaf set!'
+        print('ERROR: T1 and T2 should have the same leaf set!')
         sys.exit(1)
 
     if intersectOnly == '1':
@@ -260,6 +260,7 @@ if __name__ == "__main__":
     
     T_newick = get_newick_string(T)
     outfile = open(T_outfilename, 'w')
-    print>>outfile, T_newick
+    print(T_newick, file=outfile)
     outfile.close()
     
+

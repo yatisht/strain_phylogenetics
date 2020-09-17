@@ -54,7 +54,7 @@ def get_newick_string (tree):
     is_leaf = [tree.get_node(n).is_leaf() for n in dfs]
     curr_depth = -1
     newick_string = ''
-    prev_open = True 
+    prev_open = True
     stack = []
     for (k,s) in enumerate(dfs):
         tag = tree.get_node(s).tag
@@ -95,7 +95,7 @@ def get_newick_string (tree):
     return newick_string
 
 def get_all_node_ids (tree):
-    return tree.nodes.keys()
+    return list(tree.nodes.keys())
 
 def get_internal_node_ids (tree):
     all_node_ids = set(get_all_node_ids(tree))
@@ -113,8 +113,8 @@ def get_branch_split (tree, bid):
     return (list(A), list(B), bid)
 
 def get_symmetric_difference (A, X, common_leaf_ids):
-    d1 = len((set(A)-set(X)).intersection(common_leaf_ids)) 
-    d2 = len((set(X)-set(A)).intersection(common_leaf_ids)) 
+    d1 = len((set(A)-set(X)).intersection(common_leaf_ids))
+    d2 = len((set(X)-set(A)).intersection(common_leaf_ids))
     return (d1+d2)
 
 def get_minimum_subclades (S, C, tree, curr_min):
@@ -168,7 +168,7 @@ def get_entropy_weighted_split_distance(bid, tree1, tree2, tree2_splits, \
         dist.append((diff, ent*diff/Z, bid2))
         if (diff < min_dist):
             min_dist = diff
-    if min_dist >= s: 
+    if min_dist >= s:
         return [(s, ent*s/Z, '-1')]
     ret = [x for x in dist if (x[0] == min_dist)]
     return ret
@@ -194,21 +194,21 @@ def get_total_entropy(tree1, tree2):
 def get_entropy_weighted_total_distance(tree1, tree2, do_print):
     tree1_internal_node_ids = get_internal_node_ids(tree1)
     tree2_internal_node_ids = get_internal_node_ids(tree2)
-    
+
     tree1_leaf_node_ids = get_leaf_node_ids(tree1)
     tree2_leaf_node_ids = get_leaf_node_ids(tree2)
     common_leaf_ids = set(tree1_leaf_node_ids).intersection(set(tree2_leaf_node_ids))
-    
+
     tree2_splits = [get_branch_split(tree2, bid) for bid in \
-                         tree2_internal_node_ids] 
+                         tree2_internal_node_ids]
 
     Z = get_total_entropy(tree1, tree2)
 
     pool = Pool(processes=int(num_cores))
-    
+
     worker = functools.partial(get_entropy_weighted_split_distance, tree1=tree1, \
                                tree2=tree2, tree2_splits=tree2_splits, \
-                               common_leaf_ids = common_leaf_ids, Z = Z) 
+                               common_leaf_ids = common_leaf_ids, Z = Z)
 
     C = pool.map(worker, tree1_internal_node_ids)
 
@@ -219,7 +219,7 @@ def get_entropy_weighted_total_distance(tree1, tree2, do_print):
     for (k, bid) in enumerate(tree1_internal_node_ids):
         tag1 = tree1.get_node(bid).tag
         tree2_tags_arr = [tree2.get_node(m[2]).tag if m[2] != '-1' else '-1' \
-                       for m in C[k]] 
+                       for m in C[k]]
         tree2_tags = ','.join(tree2_tags_arr)
         if (do_print):
             to_print.append(tag1+'\t'+tree2_tags+'\t'+str(C[k][0][0])+'\t'\
@@ -234,7 +234,7 @@ def get_entropy_weighted_total_distance(tree1, tree2, do_print):
 def permute_leaves(T):
     tree = Tree(tree=T, deep=True)
     leaves = get_leaf_node_ids(tree)
-    shuf_leaves = leaves[:] 
+    shuf_leaves = leaves[:]
     random.shuffle(shuf_leaves)
     for k,nid in enumerate(leaves):
         new_nid = shuf_leaves[k]
@@ -271,36 +271,37 @@ if __name__ == "__main__":
     permuted_norm = args.get('permutedNorm', '')
     if (permuted_norm == None):
         permuted_norm = '0'
-    
+
     T1 = create_tree(T1_filename)
     T2 = create_tree(T2_filename)
-    
+
     if (permuted_norm == '1'):
         T1_p = permute_leaves(T1)
         T2_p = permute_leaves(T2)
 
     T1_newick = get_newick_string(T1)
     T2_newick = get_newick_string(T2)
-    print 'T1 (in newick format) with internal nodes labelled: '
-    print T1_newick 
-    print 'T2 (in newick format) with internal nodes labelled: '
-    print T2_newick 
+    print('T1 (in newick format) with internal nodes labelled: ')
+    print(T1_newick)
+    print('T2 (in newick format) with internal nodes labelled: ')
+    print(T2_newick)
 
-    dist_t1_t2, to_print = get_entropy_weighted_total_distance(T1, T2, True) 
-    print '#T1_node\tT2_best_matches\tmatching_split_distance\tentropy_weighted_split_distance'
-    print '\n'.join(to_print)
-                        
-    dist_t2_t1, to_print = get_entropy_weighted_total_distance(T2, T1, True) 
-    print '#T2_node\tT1_best_matches\tmatching_split_distance\tentropy_weighted_split_distance'
-    print '\n'.join(to_print)
+    dist_t1_t2, to_print = get_entropy_weighted_total_distance(T1, T2, True)
+    print('#T1_node\tT2_best_matches\tmatching_split_distance\tentropy_weighted_split_distance')
+    print('\n'.join(to_print))
 
-    print 'D(T1,T2) = ', dist_t1_t2 
-    print 'D(T2,T1) = ', dist_t2_t1 
-    print 'S(T1,T2) = ', (dist_t1_t2+dist_t2_t1)/2
+    dist_t2_t1, to_print = get_entropy_weighted_total_distance(T2, T1, True)
+    print('#T2_node\tT1_best_matches\tmatching_split_distance\tentropy_weighted_split_distance')
+    print('\n'.join(to_print))
+
+    print('D(T1,T2) = ', dist_t1_t2)
+    print('D(T2,T1) = ', dist_t2_t1)
+    print('S(T1,T2) = ', (dist_t1_t2+dist_t2_t1)/2)
 
     if (permuted_norm == '1'):
-        dist_t1_t2_p, to_print = get_entropy_weighted_total_distance(T1, T2_p, False) 
-        dist_t2_t1_p, to_print = get_entropy_weighted_total_distance(T2, T1_p, False) 
-        #print 'D(T1,T2_p) = ', dist_t1_t2_p 
-        #print 'D(T2,T1_p) = ', dist_t2_t1_p 
-        print 'S_p(T1,T2) = ', (dist_t1_t2+dist_t2_t1)/(dist_t1_t2_p+dist_t2_t1_p)
+        dist_t1_t2_p, to_print = get_entropy_weighted_total_distance(T1, T2_p, False)
+        dist_t2_t1_p, to_print = get_entropy_weighted_total_distance(T2, T1_p, False)
+        #print 'D(T1,T2_p) = ', dist_t1_t2_p
+        #print 'D(T2,T1_p) = ', dist_t2_t1_p
+        print('S_p(T1,T2) = ', (dist_t1_t2+dist_t2_t1)/(dist_t1_t2_p+dist_t2_t1_p))
+

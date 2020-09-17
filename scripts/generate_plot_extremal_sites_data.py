@@ -16,8 +16,8 @@ def isRare(n,cutoff):
 def isExtremal (s, n, cutoff, min_n_for_s, max_s_for_n):
     return ((n > cutoff) and (n==min_n_for_s[s][0]) and \
             (s==max_s_for_n[n][0]) and \
-            all([(s>v[0]) for (k,v) in max_s_for_n.items() if (k<n)]) and \
-            all([(n<v[0]) for (k,v) in min_n_for_s.items() if (k>s)]))
+            all([(s>v[0]) for (k,v) in list(max_s_for_n.items()) if (k<n)]) and \
+            all([(n<v[0]) for (k,v) in list(min_n_for_s.items()) if (k>s)]))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Identify extremal sites ')
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     all_sites = {}
 
     for (i,(ignoreCtoT,ignoreGtoT)) in enumerate([(0,0), (1,0), (0,1)]):
-        with file(parsimony_filename,'r') as f:
+        with open(parsimony_filename,'r') as f:
             for line in f:
                 if 'alt_alleles' in line:
                     words = line.split()
@@ -83,20 +83,21 @@ if __name__ == "__main__":
     
     cutoff = [1e9, 1e9, 1e9]
     for i in range(3):
-        cutoff[i] = max([k for (k,v) in saturated_s[i].items() if (v>1)])
+        cutoff[i] = max([k for (k,v) in list(saturated_s[i].items()) if (v>1)])
 
-    for site in all_sites.keys():
+    for site in list(all_sites.keys()):
         (n,s,s_fwd, s_bck) = all_sites[site]
         to_print = [site, str(n), str(s), str(int(isCtoT(site))), \
                     str(int(isGtoT(site))), str(int(isRare(n, cutoff[0]))),\
                     str(int(isExtremal(s,n,cutoff[0],min_n_for_s[0],max_s_for_n[0])))]
         for i in range(1,3):
-            if site in sites[i].keys():
+            if site in list(sites[i].keys()):
                 to_print.append(str(int(isRare(n, cutoff[i]))))
                 to_print.append(str(int(isExtremal(s,n,cutoff[i],min_n_for_s[i],max_s_for_n[i]))))
             else:
                 to_print.append('?')
                 to_print.append('?')
-        print '\t'.join(to_print)
+        print('\t'.join(to_print))
         
+
 
