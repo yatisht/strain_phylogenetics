@@ -18,7 +18,6 @@ jobs:
       run: sudo ./installUbuntu.sh
     - name: test
       run: |
-        ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help  
         python3 scripts/compute_entropy_weighted_tree_distance.py -h
@@ -34,7 +33,6 @@ jobs:
       run: sudo ./installUbuntu.sh
     - name: test
       run: |
-        ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help
         python3 scripts/compute_entropy_weighted_tree_distance.py -h
@@ -50,7 +48,6 @@ jobs:
       run: ./installMacOS.sh
     - name: test
       run: |
-        ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help
         python3 scripts/compute_entropy_weighted_tree_distance.py -h
@@ -66,7 +63,6 @@ jobs:
       run: ./installMacOS.sh
     - name: test
       run: |
-        ./build/usher --help
         ./build/rotate_trees --help
         ./build/find_parsimonious_assignments --help
         python3 scripts/compute_entropy_weighted_tree_distance.py -h
