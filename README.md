@@ -15,12 +15,12 @@ This repository provides tools primarily designed for analyzing Nextstrain (http
 ```
 
 ### Install prerequisites and build programs
-* Perhaps the simplest build process for this repo on any platform (Windows, Linux or MacOS) is using [Docker](https://www.docker.com/) (see installation instructions [here](https://docs.docker.com/get-docker/)). Once Docker is installed (which takes a few minutes typically), the following two commands would build the programs and start a new bash in an Ubuntu 18.04 container following which the remaning commands on this page should work smoothly.
+* Perhaps the simplest build process for this repo on any platform (Windows, Linux or MacOS) is using [Docker](https://www.docker.com/) (see installation instructions [here](https://docs.docker.com/get-docker/)). Once Docker is installed (which takes a few minutes typically), the following two commands would build the programs and start a new bash in an Ubuntu 18.04 container following which the remaining commands on this page should work smoothly.
 ```
     $ docker build -t strain_phylogenetics .
     $ docker run -t -i strain_phylogenetics /bin/bash
 ```
-* Alternatively, we also provide installation scipts for **MacOS (10.14 and above)**, **Ubuntu (18.04 and above)** and **CentOS (7 and above)** if you don't have Docker or prefer not to use it for some reason. 
+* Alternatively, we also provide installation scripts for **MacOS (10.14 and above)**, **Ubuntu (18.04 and above)** and **CentOS (7 and above)** if you don't have Docker or prefer not to use it for some reason. 
 
 * For MacOS 10.14 and above: 
 ```
@@ -72,7 +72,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
     $ python3 scripts/generate_plot_extremal_sites_data.py -in pruned-sumtree-for-cog_PARSIMONY.txt > plot_extremal_sites_data.txt
     $ Rscript --vanilla scripts/plot_parsimony.r plot_extremal_sites_data.txt extremal_sites_plot.pdf
 ```
-* The above command first creates raw input data for the extremal sites plot. Next, the R command accepts the generated data and creates a log(allele count) by parsimony plot for all variants sites in a given vcf. It produces three plots, one of all data, one ignoring C>U mutations and one ignoring C>U and G>U mutations, as shown below. 
+* The above command first creates raw input data for the extremal sites plot. Next, the R command accepts the generated data and creates a log(allele count) by parsimony plot for all variant sites in a given vcf. It produces three plots, one of all data, one ignoring C>U mutations and one ignoring C>U and G>U mutations, as shown below. 
 ![Extremal](/images/extremal.png)
 
 ### Compute distances between tree pairs
@@ -92,7 +92,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 ```
 
 ### Rotate trees for tanglegrams
-* A common visualization strategy for comparing two tree topologies is to use tanglegrams i.e. plot them side-by-side with common leaves connected by straight lines. A visually appealing tanglegram is one in which corresponding clades in both trees are arranged in the same vertical order and the there is minimum crossing of connecting lines with each other. While node rotation algorithms in the context of tanglegram visualization have been implemented in the [cophylo](https://www.rdocumentation.org/packages/phytools/versions/0.7-20/topics/cophylo) and [Dendroscope3](http://dendroscope.org/) tools, these algorithms are either slow or inadequate for large SARS-CoV-2 phylogenies. We implemented a quick heuristic to produce vastly improved tanglegrams.
+* A common visualization strategy for comparing two tree topologies is to use tanglegrams i.e. plot them side-by-side with common leaves connected by straight lines. A visually appealing tanglegram is one in which corresponding clades in both trees are arranged in the same vertical order and there is a minimum crossing of connecting lines with each other. While node rotation algorithms in the context of tanglegram visualization have been implemented in the [cophylo](https://www.rdocumentation.org/packages/phytools/versions/0.7-20/topics/cophylo) and [Dendroscope3](http://dendroscope.org/) tools, these algorithms are either slow or inadequate for large SARS-CoV-2 phylogenies. We implemented a quick heuristic to produce vastly improved tanglegrams.
 ```
     $ ./build/rotate_trees --T1 tree/pruned-sumtree-for-cog.nh --T2 tree/pruned-cog-for-sumtree.nh --T1_out rot-pruned-sumtree-for-cog.nh --T2_out rot-pruned-cog-for-sumtree.nh
 ```
@@ -100,7 +100,7 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 
 ![Rot-tanglegrams](/images/tanglegrams_comparison.png)
 
-* Below is a GIF of approximately 20 frames showing various operations of the tree rotation algorithm operating on much a larger pair of trees (~4k leaves) generated with help from [bpt26](https://github.com/bpt26).
+* Below is a GIF of approximately 20 frames showing various operations of the tree rotation algorithm operating on a much larger pair of trees (~4k leaves) generated with help from [bpt26](https://github.com/bpt26).
 
 ![Rot-gif](/images/rotation.gif)
 
@@ -108,13 +108,13 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 ```
     $ python3 scripts/tree_merge.py -T1 tree/pruned-sumtree-for-cog.nh -T2 tree/pruned-cog-for-sumtree.nh -symmetric 1 -T_out symm-merged-sumtree-cog.nh  
 ```
-* The above command produces a merged tree (symm-merged-sumtree-cog.nh) from two input trees (pruned-sumtree-for-cog.nh and pruned-cog-for-sumtree.nh) that is maximally resolved and compatible with both input trees (refer to our manuscript referenced at the bottom for more details).  Below are the resulting tanglegrams of the resulting merged tree with the two input trees (after applying tree rotation). The above command can also be used without the symmetric flag for its asymmetric version (where first input tree is given a priority to resolve the merged tree) or using the intersectOnly flag that produces a simple consensus of the two input trees.  
+* The above command produces a merged tree (symm-merged-sumtree-cog.nh) from two input trees (pruned-sumtree-for-cog.nh and pruned-cog-for-sumtree.nh) that is maximally resolved and compatible with both input trees (refer to our manuscript referenced at the bottom for more details).  Below are the resulting tanglegrams of the resulting merged tree with the two input trees (after applying tree rotation). The above command can also be used without the symmetric flag for its asymmetric version (where the first input tree is given a priority to resolve the merged tree) or using the intersectOnly flag that produces a simple consensus of the two input trees.  
 
 ![Merged-tanglegrams](/images/tanglegrams_merged.png)
 
 ### Ultrafast Sample Placement on Existing Trees (UShER)
 
-* UShER is a program that rapidly places new samples onto an existing phylogeny using maximum parsimony. It is particularly helpful in understanding the relationships of newly sequenced SARS-CoV-2 genomes with each other and with previously sequences genomes in an existing phylogeny. UShER prep-processes the existing phylogeny (pruned-sumtree-for-cog.nh in the example below) and its variation (pruned-sumtree-for-cog.vcf in the example below), computes the parsimonious assignments of each variation and stores the results in a compact [protobuf](https://developers.google.com/protocol-buffers) file (pruned-sumtree-for-cog.assignments.pb in the example below). 
+* UShER is a program that rapidly places new samples onto an existing phylogeny using maximum parsimony. It is particularly helpful in understanding the relationships of newly sequenced SARS-CoV-2 genomes with each other and with previously-sequenced genomes in an existing phylogeny. UShER prep-processes the existing phylogeny (pruned-sumtree-for-cog.nh in the example below) and its variation (pruned-sumtree-for-cog.vcf in the example below), computes the parsimonious assignments of each variation and stores the results in a compact [protobuf](https://developers.google.com/protocol-buffers) file (pruned-sumtree-for-cog.assignments.pb in the example below). 
 ```
     $ ./build/usher --tree tree/pruned-sumtree-for-cog.nh --vcf vcf/pruned-sumtree-for-cog.vcf --threads 4 --save-assignments pruned-sumtree-for-cog.assignments.pb 
 ```
