@@ -1,4 +1,4 @@
-brew install cmake boost libomp protobuf wget python@3
+brew install cmake boost libomp wget python@3
 
 pip3 install treelib numpy scipy
 

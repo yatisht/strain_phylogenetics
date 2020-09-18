@@ -4,7 +4,6 @@ sudo apt-get --yes install wget
 sudo apt-get --yes install cmake
 sudo apt-get --yes install libboost-all-dev
 sudo apt-get --yes install libomp-dev
-sudo apt-get --yes install libprotoc-dev libprotoc-dev protobuf-compiler
 sudo apt-get --yes install python python3-setuptools python3-pip 
 
 pip3 install treelib scipy numpy

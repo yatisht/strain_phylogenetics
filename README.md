@@ -6,6 +6,8 @@
 [![License][license-badge]][license-link]
 [![Build Status](https://github.com/yatisht/strain_phylogenetics/workflows/build/badge.svg)](https://github.com/yatisht/strain_phylogenetics/actions)
 
+**Note: UShER (Ultrafast Sample Placement on Existing Trees) has been moved to https://github.com/yatisht/usher.**
+
 This repository provides tools primarily designed for analyzing Nextstrain (http://nextstrain.org/ncov/) and other phylogenies generated for the SARS-CoV-2 genome but is also applicable for other phylogenetic applications. Detailed discussion of the tools can be found in the reference at the bottom of this page. Instructions below demonstrate the usage of these tools through examples.
 
 ### Clone the repository
@@ -111,18 +113,6 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 * The above command produces a merged tree (symm-merged-sumtree-cog.nh) from two input trees (pruned-sumtree-for-cog.nh and pruned-cog-for-sumtree.nh) that is maximally resolved and compatible with both input trees (refer to our manuscript referenced at the bottom for more details).  Below are the resulting tanglegrams of the resulting merged tree with the two input trees (after applying tree rotation). The above command can also be used without the symmetric flag for its asymmetric version (where the first input tree is given a priority to resolve the merged tree) or using the intersectOnly flag that produces a simple consensus of the two input trees.  
 
 ![Merged-tanglegrams](/images/tanglegrams_merged.png)
-
-### Ultrafast Sample Placement on Existing Trees (UShER)
-
-* UShER is a program that rapidly places new samples onto an existing phylogeny using maximum parsimony. It is particularly helpful in understanding the relationships of newly sequenced SARS-CoV-2 genomes with each other and with previously-sequenced genomes in an existing phylogeny. UShER prep-processes the existing phylogeny (pruned-sumtree-for-cog.nh in the example below) and its variation (pruned-sumtree-for-cog.vcf in the example below), computes the parsimonious assignments of each variation and stores the results in a compact [protobuf](https://developers.google.com/protocol-buffers) file (pruned-sumtree-for-cog.assignments.pb in the example below). 
-```
-    $ ./build/usher --tree tree/pruned-sumtree-for-cog.nh --vcf vcf/pruned-sumtree-for-cog.vcf --threads 4 --save-assignments pruned-sumtree-for-cog.assignments.pb 
-```
-* Once the pre-processing is complete, new sequences whose variants are called in a VCF file (missing.vcf in the example below) can be added to the existing phylogeny using the command below:
-```
-    $ ./build/usher --load-assignments pruned-sumtree-for-cog.assignments.pb --vcf vcf/missing.vcf  --threads 4
-```
-* UShER is much faster than existing tools with similar functionality and has now been integrated in the [UCSC SARS-CoV-2 Genome Browser](https://genome.ucsc.edu/cgi-bin/hgPhyloPlace).
 
 ### Reference
 * Yatish Turakhia, Bryan Thornlow, Landen Gozashti, Angie S. Hinrichs, Jason D. Fernandes, David Haussler, and Russell Corbett-Detig, "Stability of SARS-CoV-2 Phylogenies", bioRxiv [pre-print](https://www.biorxiv.org/content/10.1101/2020.06.08.141127v1) 2020.
