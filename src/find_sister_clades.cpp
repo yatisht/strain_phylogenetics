@@ -66,9 +66,9 @@ int main(int argc, char** argv) {
             for (auto child: anc->children) {
                 if (child != last_anc) {
                     for (auto l: T.get_leaves(child->identifier)) {
-                        if (std::find(missing_samples.begin(), missing_samples.end(), l->identifier) == missing_samples.end()) {
+//                        if (std::find(missing_samples.begin(), missing_samples.end(), l->identifier) == missing_samples.end()) {
                             siblings.push_back(l->identifier);
-                        }
+//                        }
 
                     }
                 }
