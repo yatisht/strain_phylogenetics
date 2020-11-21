@@ -115,4 +115,4 @@ Example files are provided in the subdirectories tree/ and vcf/ .  Phylogenetic 
 ![Merged-tanglegrams](/images/tanglegrams_merged.png)
 
 ### Reference
-* Yatish Turakhia, Bryan Thornlow, Landen Gozashti, Angie S. Hinrichs, Jason D. Fernandes, David Haussler, and Russell Corbett-Detig, "Stability of SARS-CoV-2 Phylogenies", bioRxiv [pre-print](https://www.biorxiv.org/content/10.1101/2020.06.08.141127v1) 2020.
+* Yatish Turakhia, Nicola De Maio, Bryan Thornlow, Landen Gozashti, Robert Lanfear, Conor R. Walker, Angie S. Hinrichs, Jason D. Fernandes, Rui Borges, Greg Slodkowicz, Lukas Weilguny, David Haussler, Nick Goldman and Russell Corbett-Detig, "Stability of SARS-CoV-2 Phylogenies", PLOS Genetics 2020 (https://doi.org/10.1371/journal.pgen.1009175).
